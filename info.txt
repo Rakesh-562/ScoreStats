@@ -1,0 +1,43 @@
+FLOW:
+Tournament → Matches → Innings → Overs → Balls
+
+FINAL SCHEMA FOR CREATING DATABASE
+            User(id, name, role  -- organizer / player)
+
+            Tournament(id, name, season, location )
+
+            Team(id, tournament_id, name)
+
+            Player(id , team_id, name, role  -- batsman/bowler/allrounder )
+
+            Match(id, tournament_id,team1_id, team2_id,match_date, venue,overs_limit, status
+            )
+
+            Innings(
+            id, match_id,
+            batting_team_id, bowling_team_id,
+            innings_number
+            )
+            Ball(
+            id,
+            innings_id,
+            over_number,
+            ball_number,   -- 1 to 6
+            striker_id,
+            non_striker_id,
+            bowler_id,
+            runs_off_bat,
+            extras,
+            wicket_type,
+            dismissed_player_id
+            )
+
+
+RULES:
+Ball number ∈ [1,6]
+
+Over increments only after 6 legal balls
+
+Wickets ≤ 10
+
+Innings ends correctly
