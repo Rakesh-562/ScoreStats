@@ -1,5 +1,6 @@
 Flask-Migrate
-Flask-SocketIO
+Flask-SocketIO>=5.3.0
+eventlet>=0.35.0
 Flask-Caching
 Flask-Login
 marshmallow
