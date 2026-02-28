@@ -1,6 +1,6 @@
 from flask import Flask
 from app.config import config
-
+from app.websockets import register_socket_events
 from app.extensions import db,socketio,cache,login_manager,migrate
 def create_app(config_name="default"):
     """ Applicaion factory function 
@@ -14,6 +14,7 @@ def create_app(config_name="default"):
     db.init_app(app)
     migrate.init_app(app,db)
     socketio.init_app(app)
+    register_socket_events(socketio)
     cache.init_app(app)
     # login_manager.init_app(app)
     from app.routes import register_blueprints
