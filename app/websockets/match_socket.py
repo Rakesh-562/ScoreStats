@@ -46,8 +46,7 @@ from datetime import datetime
 from flask import request
 from flask_socketio import join_room, leave_room, emit
 
-from app.extensions import db
-from app.models import Match, Inning, Ball
+from app.models import Match, Inning, Ball, Player
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -72,7 +71,7 @@ def _get_live_innings(match_id: int):
     """
     return (
         Inning.query
-        .filter_by(match_id=match_id, is_complete=False)
+        .filter_by(match_id=match_id, is_completed=False)
         .order_by(Inning.innings_number.desc())
         .first()
     )
@@ -105,18 +104,22 @@ def _build_commentary(ball: "Ball") -> str:
     "SIX! Sharma pulls Shami over mid-wicket"
     "Dot ball. Bumrah to Sharma"
     """
-    batsman = ball.batsman.name if ball.batsman else "Batsman"
-    bowler  = ball.bowler.name  if ball.bowler  else "Bowler"
+    batsman_obj = Player.query.get(ball.batsman_id) if ball.batsman_id else None
+    bowler_obj = Player.query.get(ball.bowler_id) if ball.bowler_id else None
+    batsman = batsman_obj.name if batsman_obj else "Batsman"
+    bowler = bowler_obj.name if bowler_obj else "Bowler"
+    is_wide = ball.extra_type == "wide"
+    is_no_ball = ball.extra_type == "no-ball"
 
     if ball.is_wicket:
-        return f"WICKET! {bowler} gets {batsman} ({ball.dismissal_type or 'out'})"
+        return f"WICKET! {bowler} gets {batsman} ({ball.wicket_type or 'out'})"
     if ball.runs_scored == 6:
         return f"SIX! {bowler} to {batsman}"
     if ball.runs_scored == 4:
         return f"FOUR! {bowler} to {batsman}"
-    if ball.is_wide:
+    if is_wide:
         return f"Wide. {bowler} to {batsman}"
-    if ball.is_no_ball:
+    if is_no_ball:
         return f"No ball! {bowler} to {batsman}, {ball.runs_scored} run(s)"
     if ball.runs_scored == 0:
         return f"Dot ball. {bowler} to {batsman}"
@@ -174,6 +177,9 @@ def register_match_events(socketio):
         'match_joined' event carrying the full current state so the UI
         is never blank while waiting for the next ball event.
         """
+        if not isinstance(data, dict):
+            emit('error', {'message': 'Invalid payload for join_match'})
+            return
         match_id = data.get('match_id')
 
         if not match_id:
@@ -207,6 +213,9 @@ def register_match_events(socketio):
         ----------------
         { "match_id": 42 }
         """
+        if not isinstance(data, dict):
+            emit('error', {'message': 'Invalid payload for leave_match'})
+            return
         match_id = data.get('match_id')
         if match_id:
             room = _room(match_id)
@@ -225,6 +234,9 @@ def register_match_events(socketio):
         Expected payload:  { "match_id": 42 }
         Response event:    'pong_match'
         """
+        if not isinstance(data, dict):
+            emit('error', {'message': 'Invalid payload for ping_match'})
+            return
         emit('pong_match', {
             'match_id':  data.get('match_id'),
             'timestamp': datetime.utcnow().isoformat(),

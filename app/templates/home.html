@@ -1,160 +1,316 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - ScoreStat{% endblock %}
 {% block content %}
-<div class="space-y-8">
-  <div class="flex justify-between items-center">
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Cricket Dashboard</h1>
+    <p class="page-subtitle">Live matches - scores - analytics</p>
+  </div>
+  <a href="/matches" class="btn btn-primary">All Matches</a>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 animate-in">
+  <div class="stat-card blue delay-1">
+    <div class="stat-label">Total Matches</div>
+    <div class="stat-value">{{ matches|length }}</div>
+    <div class="stat-sub">all time</div>
+  </div>
+  <div class="stat-card red delay-2">
+    <div class="stat-label">Live Now</div>
+    <div class="stat-value">{{ live_count }}</div>
+    {% if live_count > 0 %}
+    <div class="stat-sub"><span class="badge-live" style="padding: 2px 8px; font-size: 10px;"><span class="dot"></span>Active</span></div>
+    {% else %}
+    <div class="stat-sub">no live matches</div>
+    {% endif %}
+  </div>
+  <div class="stat-card green delay-3">
+    <div class="stat-label">Teams</div>
+    <div class="stat-value">{{ teams|length }}</div>
+    <div class="stat-sub">registered</div>
+  </div>
+  <div class="stat-card gold delay-4">
+    <div class="stat-label">Players</div>
+    <div class="stat-value">{{ players|length }}</div>
+    <div class="stat-sub">in roster</div>
+  </div>
+</div>
+
+<div class="card mb-8">
+  <div class="card-header">
+    <h3>Create Live Match</h3>
+  </div>
+  <div class="card-body">
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+      <select id="new-team-1" class="border rounded px-3 py-2 bg-white">
+        {% for team in teams %}
+        <option value="{{ team.id }}">{{ team.name }} ({{ team.short_name }})</option>
+        {% endfor %}
+      </select>
+      <select id="new-team-2" class="border rounded px-3 py-2 bg-white">
+        {% for team in teams %}
+        <option value="{{ team.id }}">{{ team.name }} ({{ team.short_name }})</option>
+        {% endfor %}
+      </select>
+      <input id="new-over-limit" type="number" min="1" value="20" class="border rounded px-3 py-2 bg-white" placeholder="Overs" />
+      <select id="new-match-type" class="border rounded px-3 py-2 bg-white">
+        <option value="t20">T20</option>
+        <option value="odi">ODI</option>
+        <option value="test">Test</option>
+      </select>
+      <select id="new-batting-first" class="border rounded px-3 py-2 bg-white"></select>
+      <button id="create-live-match-btn" class="btn btn-primary">Create Live</button>
+    </div>
+    <p class="text-sm mt-2" id="create-live-msg" style="color:var(--text-muted);"></p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 space-y-6">
+
+    <!-- ── LIVE NOW ───────────────────────────────────────────────── -->
     <div>
-      <h1 class="text-4xl font-bold text-gray-800">Cricket Dashboard</h1>
-      <p class="text-gray-600 mt-2">Live matches, scores, and analytics</p>
-    </div>
-    <a href="/matches" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-lg">
-      View Matches
-    </a>
-  </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-gray-500 text-sm mb-1">Total Matches</p>
-          <p class="text-3xl font-bold text-gray-800">{{ matches|length }}</p>
-        </div>
+      <div class="section-label" style="display:flex;align-items:center;gap:8px;">
+        {% if live_count > 0 %}<span class="badge-live" style="padding:2px 8px;font-size:10px;"><span class="dot"></span>Live Now</span>{% else %}Live Now{% endif %}
       </div>
-    </div>
 
-    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-gray-500 text-sm mb-1">Live Matches</p>
-          <p class="text-3xl font-bold text-gray-800">{{ live_count }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-indigo-500">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-gray-500 text-sm mb-1">Total Teams</p>
-          <p class="text-3xl font-bold text-gray-800">{{ teams|length }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-gray-500 text-sm mb-1">Total Players</p>
-          <p class="text-3xl font-bold text-gray-800">{{ players|length }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="bg-white rounded-lg shadow-md overflow-hidden">
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-      <h2 class="text-2xl font-bold text-white">Live and Upcoming Matches</h2>
-    </div>
-
-    <div class="divide-y divide-gray-200">
-      {% for match in matches %}
-      <a href="/match/{{ match.id }}" class="block hover:bg-gray-50 transition">
-        <div class="p-6">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <div class="flex items-center space-x-4">
-                <div class="flex-1 text-right">
-                  <h3 class="text-lg font-semibold text-gray-800">Team {{ match.team_1_id }}</h3>
-                  <p class="text-sm text-gray-500">Team A</p>
-                </div>
-                <div class="px-4 py-2 bg-gray-100 rounded-lg">
-                  <span class="text-sm font-bold text-gray-600">VS</span>
-                </div>
-                <div class="flex-1">
-                  <h3 class="text-lg font-semibold text-gray-800">Team {{ match.team_2_id }}</h3>
-                  <p class="text-sm text-gray-500">Team B</p>
-                </div>
+      {% if live_matches %}
+        {% for match in live_matches %}
+        {% set innings_list = match.innings.all() %}
+        <a href="/match/{{ match.id }}" class="match-card live-card animate-in delay-{{ loop.index }}" style="margin-bottom:10px;display:block;">
+          <div class="match-card-teams">
+            <div style="flex:1;">
+              <div class="match-team-name">{{ match.team1.name or 'Team ' ~ match.team_1_id }}</div>
+              {% if innings_list|length > 0 %}
+              <div class="match-team-score">
+                {{ innings_list[0].total_runs }}/{{ innings_list[0].total_wickets }}
+                <span style="font-size:12px;color:var(--text-muted);">({{ innings_list[0].total_overs }} ov)</span>
               </div>
-
-              <div class="mt-4 flex items-center justify-center space-x-4 text-sm text-gray-600">
-                <span>Type: {{ match.match_type }}</span>
-                <span>|</span>
-                <span>Overs: {{ match.over_limit or "N/A" }}</span>
-                {% if match.match_date %}
-                <span>|</span>
-                <span>Date: {{ match.match_date.strftime('%b %d, %Y') }}</span>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="ml-6">
-              {% if match.status == 'live' %}
-              <span class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-full animate-pulse">LIVE</span>
-              {% elif match.status == 'completed' %}
-              <span class="px-4 py-2 bg-gray-500 text-white text-sm font-semibold rounded-full">Completed</span>
-              {% else %}
-              <span class="px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-full">Upcoming</span>
               {% endif %}
             </div>
+            <div class="match-vs">vs</div>
+            <div style="flex:1;text-align:right;">
+              <div class="match-team-name">{{ match.team2.name or 'Team ' ~ match.team_2_id }}</div>
+              {% if innings_list|length > 1 %}
+              <div class="match-team-score">
+                {{ innings_list[1].total_runs }}/{{ innings_list[1].total_wickets }}
+                <span style="font-size:12px;color:var(--text-muted);">({{ innings_list[1].total_overs }} ov)</span>
+              </div>
+              {% endif %}
+            </div>
+            <div style="margin-left:16px;">
+              <span class="badge-live"><span class="dot"></span>Live</span>
+            </div>
           </div>
+          <div class="match-card-meta">
+            <span class="match-meta-item">{{ match.match_type }}</span>
+            <span class="match-meta-item">{{ match.over_limit or 20 }} overs</span>
+            {% if match.match_date %}<span class="match-meta-item">{{ match.match_date.strftime('%d %b %Y') }}</span>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+      <div class="card">
+        <div class="empty-state">
+          <div class="icon">📡</div>
+          <p>No matches are live right now.</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
 
-          {% if match.status == 'completed' and match.win_margin %}
-          <div class="mt-4 text-center">
-            <p class="text-sm font-semibold text-green-600">
-              Team {{ match.winner_id or "N/A" }} won {{ match.win_margin }}
-            </p>
+    <!-- ── RECENT MATCHES ─────────────────────────────────────────── -->
+    <div>
+      <div class="section-label">Recent Matches</div>
+      {% for match in recent_matches %}
+      {% set innings_list = match.innings.all() %}
+      <a href="/match/{{ match.id }}" class="match-card animate-in delay-{{ loop.index }}" style="margin-bottom:8px;display:block;">
+        <div class="match-card-teams">
+          <div style="flex:1;">
+            <div class="match-team-name">{{ match.team1.name or 'Team ' ~ match.team_1_id }}</div>
+            {% if match.status != 'scheduled' and innings_list|length > 0 %}
+            <div class="match-team-score">
+              {{ innings_list[0].total_runs }}/{{ innings_list[0].total_wickets }}
+              <span style="font-size:12px;color:var(--text-muted);">({{ innings_list[0].total_overs }} ov)</span>
+            </div>
+            {% endif %}
           </div>
+          <div class="match-vs">vs</div>
+          <div style="flex:1;text-align:right;">
+            <div class="match-team-name">{{ match.team2.name or 'Team ' ~ match.team_2_id }}</div>
+            {% if match.status != 'scheduled' and innings_list|length > 1 %}
+            <div class="match-team-score">
+              {{ innings_list[1].total_runs }}/{{ innings_list[1].total_wickets }}
+              <span style="font-size:12px;color:var(--text-muted);">({{ innings_list[1].total_overs }} ov)</span>
+            </div>
+            {% endif %}
+          </div>
+          <div style="margin-left:16px;">
+            {% if match.status == 'completed' %}<span class="badge-completed">Done</span>
+            {% else %}<span class="badge-upcoming">Upcoming</span>{% endif %}
+          </div>
+        </div>
+        <div class="match-card-meta">
+          <span class="match-meta-item">{{ match.match_type }}</span>
+          <span class="match-meta-item">{{ match.over_limit or 20 }} overs</span>
+          {% if match.match_date %}<span class="match-meta-item">{{ match.match_date.strftime('%d %b %Y') }}</span>{% endif %}
+          {% if match.status == 'completed' and match.win_margin %}
+          <span style="margin-left:auto;font-size:12px;color:var(--accent-green);font-family:var(--condensed-font);">{{ match.win_margin }}</span>
           {% endif %}
         </div>
       </a>
       {% else %}
-      <div class="p-12 text-center text-gray-500">
-        <p class="text-lg">No matches yet</p>
-        <p class="text-sm mt-2">Create your first match to get started.</p>
+      <div class="card">
+        <div class="empty-state">
+          <div class="icon">M</div>
+          <p>No completed or scheduled matches yet.</p>
+        </div>
       </div>
       {% endfor %}
     </div>
+
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">Teams</h2>
-      <div class="space-y-3">
-        {% for team in teams[:5] %}
-        <a href="/teams/{{ team.id }}" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition">
-          <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-              {{ team.short_name[:2] }}
-            </div>
-            <div>
-              <p class="font-semibold text-gray-800">{{ team.name }}</p>
-              <p class="text-sm text-gray-500">{{ team.short_name }}</p>
-            </div>
+  <div class="space-y-6">
+    <div>
+      <div class="section-label">Teams</div>
+      <div class="space-y-2">
+        {% for team in teams[:6] %}
+        <a href="/teams/{{ team.id }}" class="team-card animate-in delay-{{ loop.index }}">
+          <div class="team-avatar">{{ team.short_name[:2] | upper }}</div>
+          <div>
+            <div class="entity-name">{{ team.name }}</div>
+            <div class="entity-sub">{{ team.short_name }}</div>
           </div>
         </a>
         {% endfor %}
       </div>
-      <a href="/teams" class="block mt-4 text-center text-blue-600 hover:text-blue-700 font-semibold">View All Teams -></a>
+      {% if teams|length > 6 %}
+      <a href="/teams" style="display:block;text-align:center;margin-top:10px;font-size:13px;color:var(--accent-blue);text-decoration:none;font-family:var(--condensed-font);letter-spacing:.05em;">
+        View all {{ teams|length }} teams ->
+      </a>
+      {% endif %}
     </div>
 
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">Top Performers</h2>
-      <div class="space-y-3">
+    <div>
+      <div class="section-label">Players</div>
+      <div class="space-y-2">
         {% for player in players[:5] %}
-        <a href="/player/{{ player.id }}" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition">
-          <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-              {{ player.jersey_number or '?' }}
-            </div>
-            <div>
-              <p class="font-semibold text-gray-800">{{ player.name }}</p>
-              <p class="text-sm text-gray-500">{{ player.role }}</p>
-            </div>
+        <a href="/player/{{ player.id }}" class="player-card animate-in delay-{{ loop.index }}">
+          <div class="player-avatar">#{{ player.jersey_number or '?' }}</div>
+          <div>
+            <div class="entity-name">{{ player.name }}</div>
+            <div class="entity-sub">{{ player.role or 'Player' }}</div>
           </div>
         </a>
         {% endfor %}
       </div>
-      <a href="/players" class="block mt-4 text-center text-blue-600 hover:text-blue-700 font-semibold">View All Players -></a>
+      <a href="/players" style="display:block;text-align:center;margin-top:10px;font-size:13px;color:var(--accent-blue);text-decoration:none;font-family:var(--condensed-font);letter-spacing:.05em;">
+        View all players ->
+      </a>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const team1El = document.getElementById("new-team-1");
+    const team2El = document.getElementById("new-team-2");
+    const oversEl = document.getElementById("new-over-limit");
+    const typeEl = document.getElementById("new-match-type");
+    const battingFirstEl = document.getElementById("new-batting-first");
+    const createBtn = document.getElementById("create-live-match-btn");
+    const msgEl = document.getElementById("create-live-msg");
+
+    function setMsg(text, isErr) {
+      msgEl.textContent = text || "";
+      msgEl.style.color = isErr ? "#d14343" : "var(--text-muted)";
+    }
+
+    function refreshBattingOptions() {
+      const t1 = team1El.value;
+      const t2 = team2El.value;
+      battingFirstEl.innerHTML = "";
+      if (!t1 || !t2 || t1 === t2) return;
+      const o1 = document.createElement("option");
+      o1.value = t1;
+      o1.textContent = "Bat First: Team 1";
+      battingFirstEl.appendChild(o1);
+      const o2 = document.createElement("option");
+      o2.value = t2;
+      o2.textContent = "Bat First: Team 2";
+      battingFirstEl.appendChild(o2);
+    }
+
+    async function createLiveMatch() {
+      const team1 = Number(team1El.value || 0);
+      const team2 = Number(team2El.value || 0);
+      const overLimit = Number(oversEl.value || 20);
+      const matchType = typeEl.value || "t20";
+      const battingFirst = Number(battingFirstEl.value || 0);
+      if (!team1 || !team2 || team1 === team2) {
+        setMsg("Choose two different teams.", true);
+        return;
+      }
+      if (!battingFirst) {
+        setMsg("Choose batting first team.", true);
+        return;
+      }
+      const bowlingFirst = battingFirst === team1 ? team2 : team1;
+      setMsg("Creating live match...");
+      createBtn.disabled = true;
+
+      try {
+        const createRes = await fetch("/api/v1/matches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            team_1_id: team1,
+            team_2_id: team2,
+            over_limit: overLimit,
+            match_type: matchType,
+            match_date: new Date().toISOString()
+          })
+        });
+        const createData = await createRes.json();
+        if (!createRes.ok || !createData.success) {
+          setMsg("Create failed: " + (createData.error || "unknown error"), true);
+          return;
+        }
+        const matchId = createData.match.id;
+
+        const startRes = await fetch("/api/v1/balls/innings/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inning_number: 1,
+            match_id: matchId,
+            batting_team_id: battingFirst,
+            bowling_team_id: bowlingFirst
+          })
+        });
+        const startData = await startRes.json();
+        if (!startRes.ok || !startData.success) {
+          setMsg("Match created but innings start failed: " + (startData.error || "unknown error"), true);
+          return;
+        }
+
+        setMsg("Live match created. Redirecting...");
+        window.location.href = `/match/${matchId}`;
+      } catch (err) {
+        setMsg("Request failed: " + err.message, true);
+      } finally {
+        createBtn.disabled = false;
+      }
+    }
+
+    team1El.addEventListener("change", refreshBattingOptions);
+    team2El.addEventListener("change", refreshBattingOptions);
+    createBtn.addEventListener("click", createLiveMatch);
+    refreshBattingOptions();
+  })();
+</script>
 {% endblock %}

@@ -36,6 +36,7 @@ class DevelopmentConfig(Config):
     """Development environment configuration"""
     DEBUG = True
     SQLALCHEMY_ECHO = True  # Show SQL queries in console
+    CACHE_TYPE = 'SimpleCache'  # No Redis needed locally
 
 class ProductionConfig(Config):
     """Production environment configuration"""

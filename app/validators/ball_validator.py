@@ -4,7 +4,7 @@ class BallRecordSchema(Schema):
     striker_id=fields.Int(required=True,error_messages={"required":"striker id is required"})
     non_striker_id=fields.Int(required=True,error_messages={"required":"non striker id is required"})
     bowler_id=fields.Int(required=True,error_messages={"required":"bowler id is required"})
-    runs=fields.Int(required=True,validate=validate.Range(min=0,max=7),  error_messages={"required":"runs is required","validator_failed":"Runs must be between 0 to 7"})
+    runs=fields.Int(required=True,validate=validate.Range(min=0,max=6),  error_messages={"required":"runs is required","validator_failed":"Runs must be between 0 to 6"})
     extras=fields.Int(required=False,load_default=0,validate=validate.Range(min=0))
     extras_type=fields.Str(required=False,validate= lambda x: x in ['wide','no-ball','bye','leg-bye','penalty'],allow_none=True)
     is_wicket=fields.Bool(required=False,load_default=False)

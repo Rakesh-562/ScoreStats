@@ -1,185 +1,622 @@
 {% extends "base.html" %}
-{% block title %}{{ match.team1 }} vs {{ match.team2 }} - Live Score{% endblock %}
+{% block title %}{{ team1.name if team1 else 'Team ' ~ match.team_1_id }} vs {{ team2.name if team2 else 'Team ' ~
+match.team_2_id }} — {% if match.status == 'live' %}Live{% else %}Match{% endif %}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    
-    <!-- Match Header -->
-    <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-6 text-white">
-        <div class="flex justify-between items-center mb-4">
-            <div>
-                <p class="text-sm opacity-90">{{ match.match_type }} • {{ match.venue }}</p>
-                <p class="text-sm opacity-75">{{ match.match_date.strftime('%B %d, %Y') if match.match_date }}</p>
-            </div>
-            {% if match.status == 'live' %}
-            <span class="px-4 py-2 bg-red-500 rounded-full text-sm font-bold animate-pulse">
-                LIVE
-            </span>
-            {% endif %}
-        </div>
-        
-        <!-- Teams -->
-        <div class="grid grid-cols-3 gap-4 items-center">
-            <!-- Team 1 -->
-            <div class="text-center">
-                <h2 class="text-2xl font-bold mb-2">{{ match.home_team.name }}</h2>
-                <p class="text-3xl font-bold">{{ innings_1.total_runs if innings_1 else 0 }}/{{ innings_1.total_wickets if innings_1 else 0 }}</p>
-                <p class="text-sm opacity-90">({{ innings_1.total_overs if innings_1 else 0.0 }} overs)</p>
-            </div>
-            
-            <!-- VS -->
-            <div class="text-center">
-                <p class="text-sm opacity-75">versus</p>
-            </div>
-            
-            <!-- Team 2 -->
-            <div class="text-center">
-                <h2 class="text-2xl font-bold mb-2">{{ match.away_team.name }}</h2>
-                <p class="text-3xl font-bold">{{ innings_2.total_runs if innings_2 else 0 }}/{{ innings_2.total_wickets if innings_2 else 0 }}</p>
-                <p class="text-sm opacity-90">({{ innings_2.total_overs if innings_2 else 0.0 }} overs)</p>
-            </div>
-        </div>
-        
-        <!-- Match Status -->
-        {% if match.status == 'completed' and match.win_margin %}
-        <div class="mt-6 text-center">
-            <p class="text-lg font-semibold">
-                 {{ match.winner_team.name if match.winner_team else 'Winner' }} won {{ match.win_margin }}
-            </p>
-        </div>
-        {% elif innings_2 and innings_2.target %}
-        <div class="mt-6 text-center">
-            <p class="text-sm">{{ match.away_team.name }} need {{ innings_2.target - innings_2.total_runs }} runs from {{ (match.over_limit - innings_2.total_overs) * 6 | int }} balls</p>
-        </div>
-        {% endif %}
-    </div>
-    
-    <!-- Tabs -->
-    <div class="bg-white rounded-lg shadow-md">
-        <div class="border-b border-gray-200">
-            <nav class="flex space-x-8 px-6" id="scorecard-tabs">
-                <button class="py-4 border-b-2 border-blue-600 text-blue-600 font-semibold tab-button active" data-tab="scorecard">
-                    Scorecard
-                </button>
-                <button class="py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold tab-button" data-tab="summary">
-                    Summary
-                </button>
-                <button class="py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold tab-button" data-tab="commentary">
-                    Commentary
-                </button>
-            </nav>
-        </div>
-        
-        <!-- Tab Content: Scorecard -->
-        <div id="scorecard-content" class="p-6 tab-content">
-            {% if innings_1 %}
-            <h3 class="text-lg font-bold text-gray-800 mb-4">
-                {{ innings_1.batting_team.name }} Innings
-            </h3>
-            
-            <!-- Batting Scorecard -->
-            <div class="overflow-x-auto mb-8">
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Batsman</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">R</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">B</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">4s</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">6s</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">SR</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        {% for bat in batting_scorecard_1 %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3">
-                                <div>
-                                    <p class="font-semibold text-gray-800">{{ bat.player_name }}</p>
-                                    {% if bat.dismissal %}
-                                    <p class="text-xs text-gray-500">{{ bat.dismissal }}</p>
-                                    {% else %}
-                                    <p class="text-xs text-green-600">not out</p>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 text-center font-bold">{{ bat.runs }}</td>
-                            <td class="px-4 py-3 text-center">{{ bat.balls }}</td>
-                            <td class="px-4 py-3 text-center">{{ bat.fours }}</td>
-                            <td class="px-4 py-3 text-center">{{ bat.sixes }}</td>
-                            <td class="px-4 py-3 text-center">{{ bat.strike_rate }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Bowling Scorecard -->
-            <h4 class="text-md font-bold text-gray-800 mb-3">Bowling</h4>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Bowler</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">O</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">M</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">R</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">W</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Econ</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        {% for bowl in bowling_scorecard_1 %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 font-semibold text-gray-800">{{ bowl.player_name }}</td>
-                            <td class="px-4 py-3 text-center">{{ bowl.overs }}</td>
-                            <td class="px-4 py-3 text-center">{{ bowl.maidens }}</td>
-                            <td class="px-4 py-3 text-center">{{ bowl.runs }}</td>
-                            <td class="px-4 py-3 text-center font-bold">{{ bowl.wickets }}</td>
-                            <td class="px-4 py-3 text-center">{{ bowl.economy }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-center text-gray-500 py-8">No scorecard data available</p>
-            {% endif %}
-        </div>
-        
-        <!-- Tab Content: Summary -->
-        <div id="summary-content" class="p-6 tab-content hidden">
-            <p class="text-gray-600">Match summary coming soon...</p>
-        </div>
-        
-        <!-- Tab Content: Commentary -->
-        <div id="commentary-content" class="p-6 tab-content hidden">
-            <p class="text-gray-600">Ball-by-ball commentary coming soon...</p>
-        </div>
-    </div>
-    
+
+<!-- ── Match header ──────────────────────────────────────────── -->
+<div class="page-header">
+  <div>
+    <p
+      style="font-family:var(--condensed-font);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">
+      Match #{{ match.id }} &nbsp;·&nbsp; {{ match.match_type }} &nbsp;·&nbsp; {{ match.over_limit or 20 }} overs
+    </p>
+    <h1 class="page-title" style="font-size:28px;">
+      {{ team1.name if team1 else 'Team ' ~ match.team_1_id }}
+      <span style="color:var(--text-muted);font-weight:400;font-size:20px;"> vs </span>
+      {{ team2.name if team2 else 'Team ' ~ match.team_2_id }}
+    </h1>
+  </div>
+
+  <!-- Connection status: only shown for live matches -->
+  {% if match.status == 'live' %}
+  <div>
+    <span class="conn-status offline" id="conn-indicator">
+      <span class="conn-dot"></span>
+      <span id="conn-label">Connecting…</span>
+    </span>
+  </div>
+  {% endif %}
 </div>
 
+<!-- ── Live Scoreboard ───────────────────────────────────────── -->
+<div class="scoreboard mb-6 animate-in">
+
+  <div class="scoreboard-header">
+    <div class="scoreboard-meta">
+      {% if match.match_date %}📅 {{ match.match_date.strftime('%d %b %Y') }}{% endif %}
+    </div>
+    <div id="match-status-badge">
+      {% if match.status == 'live' %}
+      <span class="badge-live"><span class="dot"></span>Live</span>
+      {% elif match.status == 'completed' %}
+      <span class="badge-completed">✓ Completed</span>
+      {% else %}
+      <span class="badge-upcoming">Upcoming</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="scoreboard-body">
+
+    <!-- Team 1 score -->
+    <div class="team-score-block">
+      <div class="team-score-name {% if innings_1 and not innings_1.is_completed %}batting{% endif %}">
+        {{ team1.name if team1 else 'Team ' ~ match.team_1_id }}
+      </div>
+      <div class="score-display {% if innings_1 and not innings_1.is_completed %}batting-score{% endif %}">
+        <span class="score-runs" id="innings1-runs">{{ innings_1.total_runs if innings_1 else 0 }}</span><span
+          class="wickets">/<span id="innings1-wickets">{{ innings_1.total_wickets if innings_1 else 0 }}</span></span>
+      </div>
+      <div class="score-overs" id="innings1-overs">{{ '(' ~ innings_1.total_overs ~ ' ov)' if innings_1 else '' }}</div>
+    </div>
+
+    <!-- VS divider -->
+    <div class="vs-block">
+      <div class="vs-text">VS</div>
+    </div>
+
+    <!-- Team 2 score -->
+    <div class="team-score-block">
+      <div class="team-score-name {% if innings_2 and not innings_2.is_completed %}batting{% endif %}">
+        {{ team2.name if team2 else 'Team ' ~ match.team_2_id }}
+      </div>
+      <div class="score-display {% if innings_2 and not innings_2.is_completed %}batting-score{% endif %}">
+        <span class="score-runs" id="innings2-runs">{{ innings_2.total_runs if innings_2 else '—' }}</span><span
+          class="wickets">/<span id="innings2-wickets">{{ innings_2.total_wickets if innings_2 else '' }}</span></span>
+      </div>
+      <div class="score-overs" id="innings2-overs">{{ '(' ~ innings_2.total_overs ~ ' ov)' if innings_2 else '' }}</div>
+      {% if innings_2 and innings_2.target %}
+      <div style="font-family:var(--condensed-font);font-size:12px;color:var(--accent-gold);margin-top:4px;">
+        Target: {{ innings_2.target }}
+      </div>
+      {% endif %}
+    </div>
+
+  </div><!-- /scoreboard-body -->
+
+  <!-- Result / run rates -->
+  <div class="rate-chips" id="rate-chips">
+    {% if innings_1 %}
+    <span class="rate-chip">CRR <strong id="crr-val">{{ (innings_1.total_runs / innings_1.total_overs)|round(2) if
+        innings_1.total_overs > 0 else '—' }}</strong></span>
+    {% endif %}
+    {% if match.status == 'live' and innings_2 and innings_2.target %}
+    <span class="rate-chip rrr">RRR <strong id="rrr-val">{{ innings_2.required_run_rate }}</strong></span>
+    <span class="rate-chip need">Need <strong id="need-val">{{ innings_2.target - innings_2.total_runs }} off {{
+        ((match.over_limit - innings_2.total_overs) * 6) | int }} balls</strong></span>
+    {% endif %}
+    {% if match.status == 'completed' and match.win_margin %}
+    <span class="rate-chip" style="color:var(--accent-green);font-weight:600;background:rgba(16,185,129,0.1);padding:6px 12px;border-radius:20px;">
+      🏆 {{ match.win_margin }}
+    </span>
+    {% endif %}
+  </div>
+
+</div><!-- /scoreboard -->
+
+<!-- ── Result banner ─────────────────────────────────────────── -->
+{% if match.status == 'completed' and match.win_margin %}
+<div class="result-banner mb-6 animate-in">
+  🏆 {{ team1.name if match.winner_id == team1.id else team2.name if match.winner_id == team2.id else 'Winner' }} won {{ match.win_margin }}
+</div>
+{% endif %}
+
+
+<!-- ── Tabs + content ────────────────────────────────────────── -->
+<div class="card animate-in delay-2">
+
+  <div class="tabs-bar">
+    <button class="tab-btn active" data-tab="scorecard">Scorecard</button>
+    <button class="tab-btn" data-tab="commentary">Commentary</button>
+    <button class="tab-btn" data-tab="summary">Summary</button>
+  </div>
+
+  <!-- ── SCORECARD TAB ──────────────────────────────────────── -->
+  <div id="scorecard-content" class="tab-content p-6">
+
+    {% if innings_1 %}
+    <!-- Innings 1 batting -->
+    <div class="section-label">{{ team1.name if team1 else 'Team 1' }} — Innings 1
+    </div>
+    <div style="overflow-x:auto;margin-bottom:32px;">
+      <table class="scorecard-table">
+        <thead>
+          <tr>
+            <th>Batsman</th>
+            <th class="num">R</th>
+            <th class="num">B</th>
+            <th class="num">4s</th>
+            <th class="num">6s</th>
+            <th class="num">SR</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bat in batting_scorecard_1 %}
+          <tr>
+            <td class="player-cell">
+              <div class="name">{{ bat.player_name }}</div>
+              {% if bat.dismissal %}
+              <div class="dismissal">{{ bat.dismissal }}</div>
+              {% else %}
+              <div class="not-out">not out</div>
+              {% endif %}
+            </td>
+            <td class="num" style="font-size:16px;font-weight:700;">{{ bat.runs }}</td>
+            <td class="num">{{ bat.balls }}</td>
+            <td class="num">{{ bat.fours }}</td>
+            <td class="num">{{ bat.sixes }}</td>
+            <td class="num">
+              <span
+                class="sr-highlight {% if bat.strike_rate|float >= 150 %}high{% elif bat.strike_rate|float < 80 %}low{% endif %}">
+                {{ bat.strike_rate }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">No batting data yet</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Innings 1 bowling -->
+    <div class="section-label">Bowling</div>
+    <div style="overflow-x:auto;margin-bottom:32px;">
+      <table class="scorecard-table">
+        <thead>
+          <tr>
+            <th>Bowler</th>
+            <th class="num">O</th>
+            <th class="num">M</th>
+            <th class="num">R</th>
+            <th class="num">W</th>
+            <th class="num">Econ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bowl in bowling_scorecard_1 %}
+          <tr>
+            <td class="player-cell">
+              <div class="name">{{ bowl.player_name }}</div>
+            </td>
+            <td class="num">{{ bowl.overs }}</td>
+            <td class="num">{{ bowl.maidens }}</td>
+            <td class="num">{{ bowl.runs }}</td>
+            <td class="num"
+              style="font-size:16px;font-weight:700;{% if bowl.wickets >= 3 %}color:var(--accent-red);{% endif %}">{{
+              bowl.wickets }}</td>
+            <td class="num">
+              <span
+                class="{% if bowl.economy|float <= 7 %}sr-highlight high{% elif bowl.economy|float >= 12 %}sr-highlight low{% endif %}">
+                {{ bowl.economy }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">No bowling data yet</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if innings_2 %}
+    <!-- Innings 2 batting -->
+    <div class="section-label">{{ team2.name if team2 else 'Team 2' }} — Innings 2
+    </div>
+    <div style="overflow-x:auto;margin-bottom:32px;">
+      <table class="scorecard-table">
+        <thead>
+          <tr>
+            <th>Batsman</th>
+            <th class="num">R</th>
+            <th class="num">B</th>
+            <th class="num">4s</th>
+            <th class="num">6s</th>
+            <th class="num">SR</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bat in batting_scorecard_2 %}
+          <tr>
+            <td class="player-cell">
+              <div class="name">{{ bat.player_name }}</div>
+              {% if bat.dismissal %}<div class="dismissal">{{ bat.dismissal }}</div>
+              {% else %}<div class="not-out">not out</div>{% endif %}
+            </td>
+            <td class="num" style="font-size:16px;font-weight:700;">{{ bat.runs }}</td>
+            <td class="num">{{ bat.balls }}</td>
+            <td class="num">{{ bat.fours }}</td>
+            <td class="num">{{ bat.sixes }}</td>
+            <td class="num">
+              <span
+                class="sr-highlight {% if bat.strike_rate|float >= 150 %}high{% elif bat.strike_rate|float < 80 %}low{% endif %}">{{
+                bat.strike_rate }}</span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">No batting data yet</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Innings 2 bowling -->
+    <div class="section-label">Bowling</div>
+    <div style="overflow-x:auto;margin-bottom:32px;">
+      <table class="scorecard-table">
+        <thead>
+          <tr>
+            <th>Bowler</th>
+            <th class="num">O</th>
+            <th class="num">M</th>
+            <th class="num">R</th>
+            <th class="num">W</th>
+            <th class="num">Econ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bowl in bowling_scorecard_2 %}
+          <tr>
+            <td class="player-cell">
+              <div class="name">{{ bowl.player_name }}</div>
+            </td>
+            <td class="num">{{ bowl.overs }}</td>
+            <td class="num">{{ bowl.maidens }}</td>
+            <td class="num">{{ bowl.runs }}</td>
+            <td class="num"
+              style="font-size:16px;font-weight:700;{% if bowl.wickets >= 3 %}color:var(--accent-red);{% endif %}">{{
+              bowl.wickets }}</td>
+            <td class="num">
+              <span
+                class="{% if bowl.economy|float <= 7 %}sr-highlight high{% elif bowl.economy|float >= 12 %}sr-highlight low{% endif %}">
+                {{ bowl.economy }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">No bowling data yet</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if not innings_1 and not innings_2 %}
+    <div class="empty-state">
+      <div class="icon">📋</div>
+      <p>Match hasn't started yet. Scorecard will appear here once play begins.</p>
+    </div>
+    {% endif %}
+
+  </div><!-- /scorecard-content -->
+
+  <!-- ── COMMENTARY TAB ─────────────────────────────────────── -->
+  <div id="commentary-content" class="tab-content p-6 hidden">
+
+    {% if match.status == 'live' %}
+    <!-- Last 6 balls visual -->
+    <div id="over-dots-container" style="margin-bottom:20px;">
+      <div class="section-label">This Over</div>
+      <div id="over-dots" style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:13px;color:var(--text-muted);font-family:var(--condensed-font);">Waiting for first
+          delivery…</span>
+      </div>
+    </div>
+    <div class="section-label">Ball by Ball</div>
+    <div id="live-feed-panel">
+      <div id="feed-empty" style="text-align:center;padding:40px;color:var(--text-muted);">
+        <div style="font-size:32px;margin-bottom:10px;">⏳</div>
+        <p style="font-family:var(--condensed-font);letter-spacing:.05em;">Waiting for live updates…</p>
+      </div>
+    </div>
+
+    {% endif %}
+  </div><!-- /commentary-content -->
+
+  <!-- ── SUMMARY TAB ────────────────────────────────────────── -->
+  <div id="summary-content" class="tab-content p-6 hidden">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <div>
+        <div class="section-label">Match Info</div>
+        <div style="display:grid;gap:8px;">
+          {% macro info_row(label, value) %}
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <span
+              style="font-size:13px;color:var(--text-muted);font-family:var(--condensed-font);letter-spacing:.04em;text-transform:uppercase;">{{
+              label }}</span>
+            <span style="font-size:13px;color:var(--text-primary);font-weight:600;">{{ value }}</span>
+          </div>
+          {% endmacro %}
+          {{ info_row("Format", match.match_type) }}
+          {{ info_row("Overs", match.over_limit or 20) }}
+          {{ info_row("Venue", match.venue or "—") }}
+          {% if match.toss_winner %}
+          {{ info_row("Toss", (match.toss_team.name if match.toss_team else 'Team ' ~ match.toss_winner) ~ " — elected to " ~ (match.toss_decision or "bat")) }}
+          {% endif %}
+          {% if match.status == 'completed' and match.win_margin %}
+          {{ info_row("Result", match.win_margin) }}
+          {% endif %}
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">Key Stats</div>
+        <div style="display:grid;gap:8px;">
+          {% if innings_1 %}
+          {{ info_row("Inn 1 Total", innings_1.total_runs ~ "/" ~ innings_1.total_wickets) }}
+          {% endif %}
+          {% if innings_2 %}
+          {{ info_row("Inn 2 Total", innings_2.total_runs ~ "/" ~ innings_2.total_wickets) }}
+          {% if innings_2.target %}{{ info_row("Target", innings_2.target) }}{% endif %}
+          {% endif %}
+          {% if match.man_of_the_match %}
+          {{ info_row("Man of Match", (match.mom_player.name if match.mom_player else 'Player ' ~ match.man_of_the_match)) }}
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /summary-content -->
+
+</div><!-- /card -->
+
+{% endblock %}
+
+{% block scripts %}
+{% if match.status == 'live' %}
 <script>
-// Tab switching
-document.querySelectorAll('.tab-button').forEach(button => {
-    button.addEventListener('click', () => {
-        const tabName = button.dataset.tab;
-        
-        // Update buttons
-        document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.classList.remove('border-blue-600', 'text-blue-600', 'active');
-            btn.classList.add('border-transparent', 'text-gray-500');
-        });
-        button.classList.remove('border-transparent', 'text-gray-500');
-        button.classList.add('border-blue-600', 'text-blue-600', 'active');
-        
-        // Update content
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        document.getElementById(`${tabName}-content`).classList.remove('hidden');
+  (function () {
+    'use strict';
+
+    const MATCH_ID = {{ match.id }};
+
+  // ── DOM references ────────────────────────────────────────────
+  const connIndicator = document.getElementById('conn-indicator');
+  const connLabel = document.getElementById('conn-label');
+  const matchBadge = document.getElementById('match-status-badge');
+
+  // Score elements — innings 1
+  const inn1Runs = document.getElementById('innings1-runs');
+  const inn1Wkts = document.getElementById('innings1-wickets');
+  const inn1Overs = document.getElementById('innings1-overs');
+  // Score elements — innings 2
+  const inn2Runs = document.getElementById('innings2-runs');
+  const inn2Wkts = document.getElementById('innings2-wickets');
+  const inn2Overs = document.getElementById('innings2-overs');
+  // Rates
+  const crrVal = document.getElementById('crr-val');
+  const rrrVal = document.getElementById('rrr-val');
+  const needVal = document.getElementById('need-val');
+
+  // Commentary
+  const feedPanel = document.getElementById('live-feed-panel');
+  const feedEmpty = document.getElementById('feed-empty');
+  const overDots = document.getElementById('over-dots');
+
+  // Over-dot buffer (last 6 legal balls)
+  const currentOverBalls = [];
+
+  // ── Helper: classify a ball ───────────────────────────────────
+  function ballClass(ball) {
+    if (ball.is_wicket) return 'wicket';
+    if (ball.runs_scored === 6) return 'six';
+    if (ball.runs_scored === 4) return 'four';
+    const extra = ball.extra_type || '';
+    if (extra === 'wide') return 'wide';
+    if (extra === 'no-ball') return 'noball';
+    if (ball.runs_scored === 0) return 'dot';
+    return 'runs';
+  }
+
+  function ballLabel(ball) {
+    if (ball.is_wicket) return 'W';
+    if (ball.is_wide) return 'Wd';
+    if (ball.is_no_ball) return 'NB';
+    return ball.runs_scored;
+  }
+
+  // ── Render over dots ──────────────────────────────────────────
+  function renderOverDots(balls) {
+    overDots.innerHTML = '';
+    const legal = balls.filter(b => !b.is_wide && !b.is_no_ball);
+    const last6 = legal.slice(-6);
+    last6.forEach(b => {
+      const dot = document.createElement('span');
+      dot.className = `ball-dot ${ballClass(b)}`;
+      dot.title = b.commentary || '';
+      dot.textContent = ballLabel(b);
+      overDots.appendChild(dot);
     });
-});
+    // Empty placeholders
+    for (let i = last6.length; i < 6; i++) {
+      const empty = document.createElement('span');
+      empty.className = 'ball-dot empty';
+      overDots.appendChild(empty);
+    }
+  }
+
+  // ── Append ball to commentary feed ───────────────────────────
+  function appendBallRow(ball) {
+    if (feedEmpty) feedEmpty.remove();
+
+    const row = document.createElement('div');
+    row.className = 'ball-row new-entry animate-in';
+
+    const bClass = ballClass(ball);
+    const bLabel = ballLabel(ball);
+
+    row.innerHTML = `
+      <span class="ball-over-label">${ball.over_number}.${ball.ball_number}</span>
+      <span class="ball-dot ${bClass}">${bLabel}</span>
+      <span class="ball-commentary">
+        <strong>${ball.bowler_name || 'Bowler'}</strong>
+        <span style="color:var(--text-muted)"> to </span>
+        <strong>${ball.batsman_name || 'Batsman'}</strong>
+        ${ball.commentary ? ' — ' + ball.commentary : ''}
+        ${ball.is_wicket ? '<span style="color:var(--accent-red);font-weight:700;margin-left:4px;">⚡ WICKET!</span>' : ''}
+      </span>
+    `;
+
+    // Prepend so newest is at top
+    feedPanel.insertBefore(row, feedPanel.firstChild);
+
+    // Cap at 60 rows
+    while (feedPanel.children.length > 60) {
+      feedPanel.removeChild(feedPanel.lastChild);
+    }
+  }
+
+  // ── Update score display ──────────────────────────────────────
+  function updateScore(data) {
+    const inn = data.innings_number;
+    const runs = data.total_runs ?? data.runs ?? 0;
+    const wkts = data.total_wickets ?? data.wickets ?? 0;
+    const overs = data.total_overs ?? `${data.overs_completed}.${data.balls_in_over}` ?? '0';
+
+    if (inn === 1) {
+      if (inn1Runs) inn1Runs.textContent = runs;
+      if (inn1Wkts) inn1Wkts.textContent = wkts;
+      if (inn1Overs) inn1Overs.textContent = `(${overs} ov)`;
+    } else if (inn === 2) {
+      if (inn2Runs) inn2Runs.textContent = runs;
+      if (inn2Wkts) inn2Wkts.textContent = wkts;
+      if (inn2Overs) inn2Overs.textContent = `(${overs} ov)`;
+    }
+
+    // CRR
+    const oversNum = parseFloat(overs);
+    if (crrVal && oversNum > 0) {
+      crrVal.textContent = (runs / oversNum).toFixed(2);
+    }
+  }
+
+  // ── Connection status indicator ───────────────────────────────
+  function setConn(state) {
+    connIndicator.className = `conn-status ${state}`;
+    connLabel.textContent = state === 'connected' ? 'Live' :
+      state === 'reconnecting' ? 'Reconnecting…' : 'Offline';
+  }
+
+  // ── Tab switching ─────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      btn.classList.add('active');
+      document.getElementById(`${btn.dataset.tab}-content`).classList.remove('hidden');
+    });
+  });
+
+  // ── Socket.IO ─────────────────────────────────────────────────
+  const socket = io(window.location.origin, {
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1500,
+  });
+
+  socket.on('connect', () => {
+    setConn('connected');
+    socket.emit('join_match', { match_id: MATCH_ID });
+  });
+
+  socket.on('connected', (data) => {
+    console.log('[WS] Server ACK:', data.message);
+  });
+
+  socket.on('match_joined', (data) => {
+    console.log('[WS] Joined room for match', MATCH_ID);
+    // Pre-populate with recent balls if provided
+    if (data.recent_balls && data.recent_balls.length) {
+      data.recent_balls.forEach(b => currentOverBalls.push(b));
+      renderOverDots(currentOverBalls);
+      // Show last few in commentary
+      const recent = [...data.recent_balls].reverse();
+      recent.forEach(b => appendBallRow(b));
+    }
+    if (data.current_innings) updateScore(data.current_innings);
+  });
+
+  socket.on('ball_update', (ball) => {
+    console.log('[WS] New ball recorded:', ball);
+    appendBallRow(ball);
+    // Update over dots
+    if (!ball.is_wide && !ball.is_no_ball) {
+      currentOverBalls.push(ball);
+    }
+    renderOverDots(currentOverBalls);
+  });
+
+  socket.on('score_update', (data) => {
+    console.log('[WS] Score updated:', data.total_runs, '/', data.total_wickets);
+    updateScore(data);
+  });
+
+  socket.on('innings_complete', (data) => {
+    appendBallRow({
+      over_number: '—', ball_number: '—',
+      commentary: `⚡ Innings ${data.innings_number} complete — ${data.final_score.runs}/${data.final_score.wickets} (${data.final_score.overs})`,
+      runs_scored: 0, is_wicket: false,
+      batsman_name: '', bowler_name: 'System',
+    });
+  });
+
+  socket.on('match_status', (data) => {
+    if (data.status === 'completed') {
+      matchBadge.innerHTML = '<span class="badge-completed">✓ Completed</span>';
+      if (data.result_summary) {
+        appendBallRow({
+          over_number: '—', ball_number: '—',
+          commentary: `🏆 ${data.result_summary}`,
+          runs_scored: 0, is_wicket: false,
+          batsman_name: '', bowler_name: 'Result',
+        });
+      }
+    }
+  });
+
+  socket.on('error', (data) => {
+    console.error('[WS] Error:', data.message);
+  });
+
+  socket.on('disconnect', (reason) => {
+    if (reason !== 'io client disconnect') setConn('reconnecting');
+    else setConn('offline');
+  });
+
+  socket.on('reconnect', () => {
+    setConn('connected');
+    socket.emit('join_match', { match_id: MATCH_ID });
+  });
+
+  // Leave cleanly on page unload
+  window.addEventListener('beforeunload', () => {
+    socket.emit('leave_match', { match_id: MATCH_ID });
+    socket.disconnect();
+  });
+
+}) ();
 </script>
+{% endif %}
 {% endblock %}

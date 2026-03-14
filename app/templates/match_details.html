@@ -1,74 +1,576 @@
 {% extends "base.html" %}
-{% block title %}Match #{{ match.id }} - Scorecard{% endblock %}
+{% block title %}Match #{{ match.id }} - ScoreStats{% endblock %}
+
 {% block content %}
-<div class="space-y-6">
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h1 class="text-2xl font-bold text-gray-800">Match #{{ match.id }}</h1>
-    <p class="text-gray-600 mt-2">
-      Team {{ match.team_1_id }} vs Team {{ match.team_2_id }} | {{ match.match_type }} | {{ match.status }}
+
+<div class="page-header">
+  <div>
+    <p style="font-family:var(--condensed-font);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">
+      Match #{{ match.id }} &nbsp;-&nbsp; {{ match.match_type }}
     </p>
-    {% if match.match_date %}
-    <p class="text-gray-500 text-sm mt-1">Date: {{ match.match_date.strftime('%b %d, %Y %I:%M %p') }}</p>
-    {% endif %}
+    <h1 class="page-title" style="font-size:24px;">
+      {{ team1.name if team1 else 'Team ' ~ match.team_1_id }} vs {{ team2.name if team2 else 'Team ' ~ match.team_2_id }}
+    </h1>
   </div>
+  <span class="conn-status offline" id="conn-indicator">
+    <span class="conn-dot"></span>
+    <span id="conn-label">Connecting...</span>
+  </span>
+</div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-bold text-gray-800 mb-3">Innings 1</h2>
-      {% if innings_1 %}
-      <p class="text-gray-700">Runs/Wickets: {{ innings_1.total_runs }}/{{ innings_1.total_wickets }}</p>
-      <p class="text-gray-700">Overs: {{ innings_1.total_overs }}</p>
-      {% else %}
-      <p class="text-gray-500">Not started.</p>
-      {% endif %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  <div class="card animate-in delay-1">
+    <div class="card-header">
+      <h3>Innings 1</h3>
+      <span id="innings1-badge"></span>
     </div>
-
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-bold text-gray-800 mb-3">Innings 2</h2>
-      {% if innings_2 %}
-      <p class="text-gray-700">Runs/Wickets: {{ innings_2.total_runs }}/{{ innings_2.total_wickets }}</p>
-      <p class="text-gray-700">Overs: {{ innings_2.total_overs }}</p>
-      {% if innings_2.target %}
-      <p class="text-gray-700">Target: {{ innings_2.target }}</p>
-      {% endif %}
-      {% else %}
-      <p class="text-gray-500">Not started.</p>
-      {% endif %}
+    <div class="card-body" style="text-align:center;">
+      <div class="score-display" id="innings1-score">
+        <span id="innings1-runs" class="score-runs">{{ innings_1.total_runs if innings_1 else 0 }}</span><span class="wickets">/<span id="innings1-wickets">{{ innings_1.total_wickets if innings_1 else 0 }}</span></span>
+      </div>
+      <div class="score-overs" id="innings1-overs">({{ innings_1.total_overs if innings_1 else 0 }} overs)</div>
     </div>
   </div>
 
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-3">Batting Scorecard (Innings 1)</h2>
-    {% if batting_scorecard_1 %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="text-left p-2">Player</th>
-            <th class="text-left p-2">R</th>
-            <th class="text-left p-2">B</th>
-            <th class="text-left p-2">4s</th>
-            <th class="text-left p-2">6s</th>
-            <th class="text-left p-2">SR</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in batting_scorecard_1 %}
-          <tr class="border-t">
-            <td class="p-2">{{ row.player_name }}</td>
-            <td class="p-2">{{ row.runs }}</td>
-            <td class="p-2">{{ row.balls }}</td>
-            <td class="p-2">{{ row.fours }}</td>
-            <td class="p-2">{{ row.sixes }}</td>
-            <td class="p-2">{{ row.strike_rate }}</td>
-          </tr>
+  <div class="card animate-in delay-2">
+    <div class="card-header">
+      <h3>Innings 2</h3>
+    </div>
+    <div class="card-body" style="text-align:center;">
+      <div class="score-display">
+        <span id="innings2-runs" class="score-runs">{{ innings_2.total_runs if innings_2 else 0 }}</span><span class="wickets">/<span id="innings2-wickets">{{ innings_2.total_wickets if innings_2 else 0 }}</span></span>
+      </div>
+      <div class="score-overs" id="innings2-overs">({{ innings_2.total_overs if innings_2 else 0 }} overs)</div>
+      {% if innings_2 and innings_2.target %}
+      <div style="margin-top:8px;font-family:var(--condensed-font);font-size:13px;color:var(--accent-gold);">
+        Target: {{ innings_2.target }} &nbsp;-&nbsp; Need <span id="need-runs">{{ innings_2.target - innings_2.total_runs }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card animate-in delay-3 mb-6">
+  <div class="card-header">
+    <h3>Live Scoring Input</h3>
+    <span id="free-hit-next" style="font-family:var(--condensed-font);font-size:12px;color:var(--text-muted);">
+      {% if current_innings %}Innings {{ current_innings.innings_number }}{% else %}No active innings{% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    {% if current_innings %}
+    {% set batting_team_id = current_innings.batting_team_id %}
+    {% set bowling_team_id = current_innings.bowling_team_id %}
+    <form id="live-score-form" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <input type="hidden" id="innings-id" value="{{ current_innings.id }}">
+
+      <label style="display:grid;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Striker</span>
+        <select id="striker-id" class="form-input" required>
+          <option value="">Select striker</option>
+          {% for p in team1_players if p.team_id == batting_team_id %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
           {% endfor %}
-        </tbody>
-      </table>
+          {% for p in team2_players if p.team_id == batting_team_id %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label style="display:grid;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Non-striker</span>
+        <select id="non-striker-id" class="form-input" required>
+          <option value="">Select non-striker</option>
+          {% for p in team1_players if p.team_id == batting_team_id %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+          {% for p in team2_players if p.team_id == batting_team_id %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label style="display:grid;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Bowler</span>
+        <select id="bowler-id" class="form-input" required>
+          <option value="">Select bowler</option>
+          {% for p in team1_players if p.team_id == bowling_team_id %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+          {% for p in team2_players if p.team_id == bowling_team_id %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label style="display:grid;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Runs</span>
+        <input id="runs" class="form-input" type="number" min="0" max="6" value="0" required>
+      </label>
+
+      <label style="display:grid;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Extras</span>
+        <input id="extras" class="form-input" type="number" min="0" value="0">
+      </label>
+
+      <label style="display:grid;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Extras Type</span>
+        <select id="extras-type" class="form-input">
+          <option value="">None</option>
+          <option value="wide">Wide</option>
+          <option value="no-ball">No Ball</option>
+          <option value="bye">Bye</option>
+          <option value="leg-bye">Leg Bye</option>
+        </select>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <input id="is-wicket" type="checkbox">
+        <span style="font-size:13px;">Wicket on this ball</span>
+      </label>
+
+      <label id="wicket-type-wrap" style="display:none;grid-template-columns:1fr;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Wicket Type</span>
+        <select id="wicket-type" class="form-input">
+          <option value="">Select wicket type</option>
+          <option value="bowled">Bowled</option>
+          <option value="caught">Caught</option>
+          <option value="lbw">LBW</option>
+          <option value="run-out">Run Out</option>
+          <option value="stumped">Stumped</option>
+          <option value="hit-wicket">Hit Wicket</option>
+        </select>
+      </label>
+
+      <label id="dismissed-player-wrap" style="display:none;grid-template-columns:1fr;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Dismissed Player</span>
+        <select id="dismissed-player-id" class="form-input">
+          <option value="">Select player</option>
+          {% for p in team1_players if p.team_id == batting_team_id %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+          {% for p in team2_players if p.team_id == batting_team_id %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <div style="display:flex;align-items:end;">
+        <button id="submit-ball-btn" class="btn btn-primary" type="submit">Record Ball</button>
+      </div>
+    </form>
+    <p id="score-form-msg" style="margin-top:10px;font-size:12px;color:var(--text-muted);"></p>
+    {% else %}
+    {% if match.status == 'completed' %}
+    <div style="padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card-hover);">
+      <p style="font-size:12px;color:var(--text-muted);font-family:var(--condensed-font);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Match Result</p>
+      {% if match.winner_id %}
+      <p style="font-size:16px;font-weight:700;color:var(--text-primary);">
+        {% if team1 and match.winner_id == team1.id %}
+          {{ team1.name }}
+        {% elif team2 and match.winner_id == team2.id %}
+          {{ team2.name }}
+        {% else %}
+          Team {{ match.winner_id }}
+        {% endif %}
+        won {{ match.win_margin or '' }}
+      </p>
+      {% elif match.win_margin %}
+      <p style="font-size:16px;font-weight:700;color:var(--text-primary);">{{ match.win_margin }}</p>
+      {% else %}
+      <p style="font-size:16px;font-weight:700;color:var(--text-primary);">Match completed</p>
+      {% endif %}
     </div>
     {% else %}
-    <p class="text-gray-500">No scorecard data yet.</p>
+    <p style="color:var(--text-muted);">No active innings. Start an innings first, then this form will allow live ball input.</p>
+    {% endif %}
     {% endif %}
   </div>
 </div>
+
+<div class="card animate-in delay-3">
+  <div class="card-header">
+    <h3>Live Commentary</h3>
+    <span id="match-status-label" style="font-family:var(--condensed-font);font-size:12px;color:var(--text-muted);">
+      <span id="match-status">{{ match.status }}</span>
+    </span>
+  </div>
+  <div class="card-body" id="live-feed-panel" style="max-height:320px;overflow-y:auto;">
+    <div id="feed-empty" class="empty-state" style="padding:32px 0;">
+      <div class="icon">...</div>
+      <p>Waiting for live updates...</p>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4 animate-in delay-4">
+  <div class="card-header"><h3>Batting - Innings 1</h3></div>
+  <div style="overflow-x:auto;">
+    <table class="scorecard-table">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th class="num">R</th>
+          <th class="num">B</th>
+          <th class="num">4s</th>
+          <th class="num">6s</th>
+          <th class="num">SR</th>
+        </tr>
+      </thead>
+      <tbody id="batting-scorecard-1-body">
+        {% for row in batting_scorecard_1 %}
+        <tr>
+          <td class="player-cell">
+            <div class="name">{{ row.player_name }}</div>
+            {% if row.dismissal and row.dismissal != 'not_out' %}<div class="dismissal">{{ row.dismissal }}</div>
+            {% else %}<div class="not-out">not out</div>{% endif %}
+          </td>
+          <td class="num" style="font-weight:700;font-size:15px;">{{ row.runs }}</td>
+          <td class="num">{{ row.balls }}</td>
+          <td class="num">{{ row.fours }}</td>
+          <td class="num">{{ row.sixes }}</td>
+          <td class="num">{{ row.strike_rate }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">No batting data yet</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const MATCH_ID    = {{ match.id }};
+  const connEl      = document.getElementById('conn-indicator');
+  const connLabel   = document.getElementById('conn-label');
+  const feedPanel   = document.getElementById('live-feed-panel');
+  const feedEmpty   = document.getElementById('feed-empty');
+  const inn1Runs    = document.getElementById('innings1-runs');
+  const inn1Wkts    = document.getElementById('innings1-wickets');
+  const inn1Overs   = document.getElementById('innings1-overs');
+  const inn2Runs    = document.getElementById('innings2-runs');
+  const inn2Wkts    = document.getElementById('innings2-wickets');
+  const inn2Overs   = document.getElementById('innings2-overs');
+  const statusEl    = document.getElementById('match-status');
+  const scoreForm   = document.getElementById('live-score-form');
+  const formMsg     = document.getElementById('score-form-msg');
+  const wicketChk   = document.getElementById('is-wicket');
+  const wicketWrap  = document.getElementById('wicket-type-wrap');
+  const dismissedWrap = document.getElementById('dismissed-player-wrap');
+  const freeHitEl   = document.getElementById('free-hit-next');
+  const battingBody1 = document.getElementById('batting-scorecard-1-body');
+  let freeHitActive = false;
+
+  function setConn(s) {
+    connEl.className = `conn-status ${s}`;
+    connLabel.textContent = s === 'connected' ? 'Live' : s === 'reconnecting' ? 'Reconnecting...' : 'Offline';
+  }
+
+  function addFeed(text, type) {
+    if (feedEmpty) feedEmpty.remove();
+    const row = document.createElement('div');
+    row.className = 'ball-row new-entry';
+    row.style.cssText = 'padding:10px 0;';
+    row.innerHTML = `<span style="font-family:var(--condensed-font);font-size:13px;color:${type==='wicket'?'var(--accent-red)':type==='highlight'?'var(--accent-green)':'var(--text-secondary)'};">${text}</span>`;
+    feedPanel.insertBefore(row, feedPanel.firstChild);
+    while (feedPanel.children.length > 30) feedPanel.removeChild(feedPanel.lastChild);
+  }
+
+  function setFormMsg(text, isError) {
+    if (!formMsg) return;
+    formMsg.textContent = text || '';
+    formMsg.style.color = isError ? 'var(--accent-red)' : 'var(--text-muted)';
+  }
+
+  function setSelectValue(selectId, value) {
+    if (value === null || value === undefined) return;
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    const v = String(value);
+    const exists = Array.from(el.options).some(o => o.value === v);
+    if (exists) el.value = v;
+  }
+
+  function escapeHtml(v) {
+    return String(v ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderBattingRows(rows) {
+    if (!battingBody1) return;
+    if (!rows || !rows.length) {
+      battingBody1.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">No batting data yet</td></tr>';
+      return;
+    }
+    battingBody1.innerHTML = rows.map((row) => {
+      const dismissal = row.dismissal && row.dismissal !== 'not_out'
+        ? `<div class="dismissal">${escapeHtml(row.dismissal)}</div>`
+        : '<div class="not-out">not out</div>';
+      return `
+        <tr>
+          <td class="player-cell">
+            <div class="name">${escapeHtml(row.player_name)}</div>
+            ${dismissal}
+          </td>
+          <td class="num" style="font-weight:700;font-size:15px;">${escapeHtml(row.runs)}</td>
+          <td class="num">${escapeHtml(row.balls)}</td>
+          <td class="num">${escapeHtml(row.fours)}</td>
+          <td class="num">${escapeHtml(row.sixes)}</td>
+          <td class="num">${escapeHtml(row.strike_rate)}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function refreshLiveScorecard() {
+    const inningsId = Number(document.getElementById('innings-id')?.value || 0);
+    if (!inningsId) return;
+    try {
+      const res = await fetch(`/api/v1/balls/innings/${inningsId}/summary`);
+      const data = await res.json();
+      if (!res.ok || !data.success) return;
+      renderBattingRows(data.batting_scorecard || []);
+    } catch (_) {
+      // do nothing, live updates continue via sockets
+    }
+  }
+
+  function setFreeHitUI(isFreeHit) {
+    freeHitActive = !!isFreeHit;
+    if (freeHitEl) {
+      const suffix = freeHitActive ? ' - FREE HIT (next legal ball)' : '';
+      const inningsText = freeHitEl.textContent.split(' - FREE HIT')[0];
+      freeHitEl.textContent = inningsText + suffix;
+      freeHitEl.style.color = freeHitActive ? 'var(--accent-gold)' : 'var(--text-muted)';
+    }
+    const wicketTypeEl = document.getElementById('wicket-type');
+    if (wicketTypeEl) {
+      Array.from(wicketTypeEl.options).forEach((opt) => {
+        if (!opt.value) return;
+        opt.disabled = freeHitActive && opt.value !== 'run-out';
+      });
+      if (freeHitActive && wicketChk && wicketChk.checked) {
+        wicketTypeEl.value = 'run-out';
+      }
+    }
+  }
+
+  function refreshDismissedOptions() {
+    const dismissedEl = document.getElementById('dismissed-player-id');
+    const strikerEl = document.getElementById('striker-id');
+    const nonStrikerEl = document.getElementById('non-striker-id');
+    if (!dismissedEl || !strikerEl || !nonStrikerEl) return;
+    const allowed = new Set([strikerEl.value, nonStrikerEl.value].filter(Boolean));
+    Array.from(dismissedEl.options).forEach((opt) => {
+      if (!opt.value) return;
+      opt.hidden = !allowed.has(opt.value);
+      opt.disabled = !allowed.has(opt.value);
+    });
+    if (dismissedEl.value && !allowed.has(dismissedEl.value)) {
+      dismissedEl.value = '';
+    }
+  }
+
+  function markOutPlayers(outIds) {
+    const outSet = new Set((outIds || []).map(String));
+    ['striker-id', 'non-striker-id'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      Array.from(el.options).forEach((opt) => {
+        if (!opt.value) return;
+        const isOut = outSet.has(opt.value);
+        opt.disabled = isOut;
+        if (isOut && !opt.textContent.includes(' (out)')) {
+          opt.textContent = `${opt.textContent} (out)`;
+        }
+      });
+    });
+  }
+
+  async function syncInningsState() {
+    const inningsId = Number(document.getElementById('innings-id')?.value || 0);
+    if (!inningsId) return;
+    try {
+      const res = await fetch(`/api/v1/balls/innings/${inningsId}/state`);
+      const data = await res.json();
+      if (!res.ok || !data.success) return;
+      setSelectValue('striker-id', data.striker_id);
+      setSelectValue('non-striker-id', data.non_striker_id);
+      markOutPlayers(data.out_player_ids || []);
+      setFreeHitUI(!!data.free_hit_next);
+      refreshDismissedOptions();
+    } catch (_) {
+      // keep current manual selections on failure
+    }
+  }
+
+  if (wicketChk) {
+    wicketChk.addEventListener('change', () => {
+      const show = wicketChk.checked;
+      if (wicketWrap) wicketWrap.style.display = show ? 'grid' : 'none';
+      if (dismissedWrap) dismissedWrap.style.display = show ? 'grid' : 'none';
+      if (show) {
+        refreshDismissedOptions();
+        if (freeHitActive) {
+          const wicketTypeEl = document.getElementById('wicket-type');
+          if (wicketTypeEl) wicketTypeEl.value = 'run-out';
+        }
+      }
+    });
+  }
+
+  const strikerEl = document.getElementById('striker-id');
+  const nonStrikerEl = document.getElementById('non-striker-id');
+  if (strikerEl) strikerEl.addEventListener('change', refreshDismissedOptions);
+  if (nonStrikerEl) nonStrikerEl.addEventListener('change', refreshDismissedOptions);
+
+  if (scoreForm) {
+    scoreForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setFormMsg('Recording ball...', false);
+
+      const inningsId = Number(document.getElementById('innings-id')?.value || 0);
+      const strikerId = Number(document.getElementById('striker-id')?.value || 0);
+      const nonStrikerId = Number(document.getElementById('non-striker-id')?.value || 0);
+      const bowlerId = Number(document.getElementById('bowler-id')?.value || 0);
+      const runs = Number(document.getElementById('runs')?.value || 0);
+      const extras = Number(document.getElementById('extras')?.value || 0);
+      const extrasType = document.getElementById('extras-type')?.value || '';
+      const isWicket = !!document.getElementById('is-wicket')?.checked;
+      const wicketType = document.getElementById('wicket-type')?.value || null;
+      const dismissedPlayerIdRaw = document.getElementById('dismissed-player-id')?.value || '';
+
+      if (!inningsId || !strikerId || !nonStrikerId || !bowlerId) {
+        setFormMsg('Please select innings, striker, non-striker, and bowler.', true);
+        return;
+      }
+      if (strikerId === nonStrikerId) {
+        setFormMsg('Striker and non-striker must be different players.', true);
+        return;
+      }
+      if (isWicket && !wicketType) {
+        setFormMsg('Please select wicket type.', true);
+        return;
+      }
+      if (isWicket && freeHitActive && wicketType !== 'run-out') {
+        setFormMsg('Free hit wicket can only be run-out.', true);
+        return;
+      }
+
+      const payload = {
+        innings_id: inningsId,
+        striker_id: strikerId,
+        non_striker_id: nonStrikerId,
+        bowler_id: bowlerId,
+        runs: runs,
+        extras: extras,
+        extras_type: extrasType || null,
+        is_wicket: isWicket,
+        wicket_type: isWicket ? wicketType : null,
+        dismissed_player_id: isWicket && dismissedPlayerIdRaw ? Number(dismissedPlayerIdRaw) : null
+      };
+
+      try {
+        const res = await fetch('/api/v1/balls/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          const err = data.error || (data.errors ? JSON.stringify(data.errors) : 'Failed to record ball');
+          setFormMsg(err, true);
+          return;
+        }
+        setFormMsg('Ball recorded. Live score updated.', false);
+        await syncInningsState();
+        await refreshLiveScorecard();
+      } catch (err) {
+        setFormMsg('Network error while recording ball.', true);
+      }
+    });
+  }
+
+  syncInningsState();
+  refreshLiveScorecard();
+
+  const socket = io(window.location.origin, { transports: ['websocket','polling'] });
+
+  socket.on('connect', () => {
+    setConn('connected');
+    socket.emit('join_match', { match_id: MATCH_ID });
+  });
+
+  socket.on('match_joined', (d) => {
+    addFeed('Joined live room for Match #' + MATCH_ID, 'highlight');
+    if (d.current_innings) {
+      const inn = d.current_innings;
+      const runs = inn.total_runs ?? inn.runs ?? 0;
+      const wkts = inn.total_wickets ?? inn.wickets ?? 0;
+      const ov   = inn.total_overs ?? `${inn.overs_completed}.${inn.balls_in_over}`;
+      if (inn.innings_number === 1) {
+        if (inn1Runs) inn1Runs.textContent = runs;
+        if (inn1Wkts) inn1Wkts.textContent = wkts;
+        if (inn1Overs) inn1Overs.textContent = `(${ov} overs)`;
+      } else {
+        if (inn2Runs) inn2Runs.textContent = runs;
+        if (inn2Wkts) inn2Wkts.textContent = wkts;
+        if (inn2Overs) inn2Overs.textContent = `(${ov} overs)`;
+      }
+    }
+    if (d.recent_balls && d.recent_balls.length) {
+      const recent = [...d.recent_balls].reverse();
+      recent.forEach(b => addFeed(
+        `${b.over_number}.${b.ball_number} &nbsp;-&nbsp; ${b.commentary || 'Ball delivered'}`,
+        b.is_wicket ? 'wicket' : 'normal'
+      ));
+    }
+  });
+
+  socket.on('ball_update', (b) => {
+    addFeed(
+      `<strong style="color:var(--text-muted)">${b.over_number}.${b.ball_number}</strong> &nbsp;-&nbsp; ${b.commentary || 'Ball delivered'}`,
+      b.is_wicket ? 'wicket' : 'normal'
+    );
+    refreshLiveScorecard();
+  });
+
+  socket.on('score_update', (d) => {
+    const runs = d.total_runs ?? d.runs ?? 0;
+    const wkts = d.total_wickets ?? d.wickets ?? 0;
+    const ov   = d.total_overs ?? `${d.overs_completed}.${d.balls_in_over}`;
+    if (d.innings_number === 1) {
+      if (inn1Runs) inn1Runs.textContent = runs;
+      if (inn1Wkts) inn1Wkts.textContent = wkts;
+      if (inn1Overs) inn1Overs.textContent = `(${ov} overs)`;
+    } else {
+      if (inn2Runs) inn2Runs.textContent = runs;
+      if (inn2Wkts) inn2Wkts.textContent = wkts;
+      if (inn2Overs) inn2Overs.textContent = `(${ov} overs)`;
+    }
+  });
+
+  socket.on('match_status', (d) => {
+    if (statusEl && d.status) statusEl.textContent = d.status;
+    if (d.result_summary) addFeed('Result: ' + d.result_summary, 'highlight');
+  });
+
+  socket.on('disconnect', (r) => setConn(r === 'io client disconnect' ? 'offline' : 'reconnecting'));
+  socket.on('reconnect', () => { setConn('connected'); socket.emit('join_match', { match_id: MATCH_ID }); });
+
+  window.addEventListener('beforeunload', () => {
+    socket.emit('leave_match', { match_id: MATCH_ID });
+  });
+})();
+</script>
 {% endblock %}

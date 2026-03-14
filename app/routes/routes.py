@@ -80,32 +80,52 @@ def get_match_summary(match_id):
 @main_bp.route("/")
 def home():
     teams = Team.query.all()
-    matches = Match.query.order_by(Match.match_date.desc()).all()
     players = Player.query.limit(10).all()
-    live_count = Match.query.filter_by(status="live").count()
-    return render_template("home.html", teams=teams, matches=matches, players=players, live_count=live_count)
+    live_matches = Match.query.filter_by(status="live").order_by(Match.match_date.desc()).all()
+    recent_matches = Match.query.filter(Match.status != "live").order_by(Match.match_date.desc()).limit(15).all()
+    live_count = len(live_matches)
+    # Build id→name map so template doesn't show raw IDs
+    team_map = {t.id: t.name for t in teams}
+    return render_template("home.html", teams=teams, live_matches=live_matches,
+                           recent_matches=recent_matches, players=players,
+                           live_count=live_count, team_map=team_map)
 
 
 @main_bp.route("/match/<int:match_id>")
 def score_match(match_id):
-    match = Match.query.get_or_404(match_id)
+    from app.extensions import db as _db
+    match = _db.session.get(Match, match_id)
+    if not match:
+        from flask import abort
+        abort(404)
     innings_list = Inning.query.filter_by(match_id=match_id).order_by(Inning.innings_number).all()
     innings_1 = innings_list[0] if len(innings_list) > 0 else None
     innings_2 = innings_list[1] if len(innings_list) > 1 else None
 
-    batting_scorecard_1 = []
-    bowling_scorecard_1 = []
+    batting_scorecard_1, bowling_scorecard_1 = [], []
+    batting_scorecard_2, bowling_scorecard_2 = [], []
     if innings_1:
         batting_scorecard_1 = StatisticsService.get_batting_scorecard(innings_1.id)
         bowling_scorecard_1 = StatisticsService.get_bowling_scorecard(innings_1.id)
+    if innings_2:
+        batting_scorecard_2 = StatisticsService.get_batting_scorecard(innings_2.id)
+        bowling_scorecard_2 = StatisticsService.get_bowling_scorecard(innings_2.id)
+
+    # Resolve team names
+    team1 = db.session.get(Team, match.team_1_id)
+    team2 = db.session.get(Team, match.team_2_id)
 
     return render_template(
-        "match_details.html",
+        "match_scorecard.html",
         match=match,
+        team1=team1,
+        team2=team2,
         innings_1=innings_1,
         innings_2=innings_2,
         batting_scorecard_1=batting_scorecard_1,
         bowling_scorecard_1=bowling_scorecard_1,
+        batting_scorecard_2=batting_scorecard_2,
+        bowling_scorecard_2=bowling_scorecard_2,
     )
 
 

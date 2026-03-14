@@ -41,14 +41,13 @@ class InningsService:
             target=target,
         )
         db.session.add(innings)
-        db.session.commit()
         if match.status=='scheduled':
             match.status='live'
-            db.session.commit()
+        db.session.commit()
         return innings
     @staticmethod
     def complete_innings(innings_id):
-        innings=Inning.query.get(innings_id)
+        innings=db.session.get(Inning,innings_id)
         if not innings:
             raise ValueError(f"Innings {innings_id} not found")
         innings.is_completed=True
@@ -58,7 +57,7 @@ class InningsService:
         return innings
     @staticmethod
     def _check_match_completion(match_id):
-        match=Match.query.get(match_id)
+        match=db.session.get(Match,match_id)
         if not match:
             return None
         innings_list=Inning.query.filter_by(match_id=match_id).all()
@@ -81,7 +80,7 @@ class InningsService:
 
     @staticmethod
     def get_innings_summary(inning_id):
-        innings=Inning.query.get(inning_id)
+        innings=db.session.get(Inning,inning_id)
         if not innings:
             return None
         from app.services.statistics_service import StatisticsService

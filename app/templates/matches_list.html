@@ -1,22 +1,71 @@
 {% extends "base.html" %}
 {% block title %}Matches{% endblock %}
 {% block content %}
-<div class="bg-white rounded-lg shadow-md p-6">
-  <h1 class="text-2xl font-bold text-gray-800 mb-4">Matches</h1>
-  <div class="space-y-3">
-    {% for match in matches %}
-    <a href="/match/{{ match.id }}" class="block p-4 rounded-lg border hover:bg-gray-50">
-      <p class="font-semibold text-gray-800">
-        Match #{{ match.id }}: Team {{ match.team_1_id }} vs Team {{ match.team_2_id }}
-      </p>
-      <p class="text-sm text-gray-500">
-        {{ match.match_type }} | {{ match.status }}
-        {% if match.match_date %}| {{ match.match_date.strftime('%b %d, %Y %I:%M %p') }}{% endif %}
-      </p>
-    </a>
-    {% else %}
-    <p class="text-gray-500">No matches found.</p>
-    {% endfor %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Matches</h1>
+    <p class="page-subtitle">{{ matches|length }} total - {{ live_count|default(0) }} live</p>
   </div>
+  <a href="/matches/new" class="btn btn-primary">+ New Match</a>
 </div>
+
+<div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);">
+  <button class="tab-btn active" data-filter="all" onclick="filterMatches(this,'all')">All</button>
+  <button class="tab-btn" data-filter="live" onclick="filterMatches(this,'live')">Live</button>
+  <button class="tab-btn" data-filter="scheduled" onclick="filterMatches(this,'scheduled')">Scheduled</button>
+  <button class="tab-btn" data-filter="completed" onclick="filterMatches(this,'completed')">Completed</button>
+</div>
+
+<div class="space-y-3" id="matches-list">
+  {% for match in matches %}
+  <a href="/match/{{ match.id }}" class="match-card {% if match.status == 'live' %}live-card{% endif %} animate-in delay-{{ [loop.index, 5]|min }}" data-status="{{ match.status }}">
+    <div class="match-card-teams">
+      <div style="flex:1;">
+        <div class="match-team-name">{{ match.team1.name if match.team1 else 'Team ' ~ match.team_1_id }}</div>
+      </div>
+      <div class="match-vs">vs</div>
+      <div style="flex:1;text-align:right;">
+        <div class="match-team-name">{{ match.team2.name if match.team2 else 'Team ' ~ match.team_2_id }}</div>
+      </div>
+      <div style="margin-left:16px;">
+        {% if match.status == 'live' %}
+          <span class="badge-live"><span class="dot"></span>Live</span>
+        {% elif match.status == 'completed' %}
+          <span class="badge-completed">Done</span>
+        {% else %}
+          <span class="badge-upcoming">Scheduled</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="match-card-meta">
+      <span class="match-meta-item">{{ match.match_type }}</span>
+      <span class="match-meta-item">{{ match.over_limit or 20 }} overs</span>
+      {% if match.match_date %}
+      <span class="match-meta-item">{{ match.match_date.strftime('%d %b %Y, %I:%M %p') }}</span>
+      {% endif %}
+      {% if match.status == 'completed' and match.win_margin %}
+      <span style="margin-left:auto;font-size:12px;color:var(--accent-green);font-family:var(--condensed-font);">{{ match.win_margin }}</span>
+      {% endif %}
+    </div>
+  </a>
+  {% else %}
+  <div class="card">
+    <div class="empty-state">
+      <div class="icon">M</div>
+      <p>No matches found.</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+function filterMatches(btn, filter) {
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#matches-list [data-status]').forEach(card => {
+    card.style.display = (filter === 'all' || card.dataset.status === filter) ? 'block' : 'none';
+  });
+}
+</script>
 {% endblock %}

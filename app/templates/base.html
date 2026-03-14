@@ -15,65 +15,51 @@
             theme: {
                 extend: {
                     colors: {
-                        'primary': '#1e40af',
-                        'secondary': '#7c3aed',
+                        'primary': '#1d63c5',
+                        'secondary': '#0f9d7a',
                     },
                 },
             },
         }
      </script>
-</head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Navigation Header -->
-     <nav class="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
 
-       <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <!-- Logo/Brand -->
-                <a href="/" class="flex items-center space-x-3">
-                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9V5h2v4h4v2H9z"/>
-                    </svg>
-                    <span class="text-2xl font-bold">ScoreStats</span>
-                </a>
-                
-                <!-- Navigation Links -->
-                <div class="hidden md:flex space-x-6">
-                    <a href="/" class="hover:text-blue-200 transition">
-                        Dashboard
-                    </a>
-                    <a href="/matches" class="hover:text-blue-200 transition">
-                        Matches
-                    </a>
-                    <a href="/teams" class="hover:text-blue-200 transition">
-                        Teams
-                    </a>
-                    <a href="/players" class="hover:text-blue-200 transition">
-                        Players
-                    </a>
-                    <a href="/analytics" class="hover:text-blue-200 transition">
-                        Analytics
-                    </a>
-                </div>
-                
-                <!-- Mobile Menu Button -->
-                <button id="mobile-menu-button" class="md:hidden">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
-            </div>
-            
-            <!-- Mobile Menu -->
-            <div id="mobile-menu" class="hidden md:hidden mt-4 space-y-2">
-                <a href="/" class="block py-2 hover:text-blue-200">Dashboard</a>
-                <a href="/matches" class="block py-2 hover:text-blue-200">Matches</a>
-                <a href="/teams" class="block py-2 hover:text-blue-200">Teams</a>
-                <a href="/players" class="block py-2 hover:text-blue-200">Players</a>
-                <a href="/analytics" class="block py-2 hover:text-blue-200">Analytics</a>
-            </div>
-        </div>
-    </nav>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+</head>
+<body class="min-h-screen">
+    <!-- Navigation Header -->
+     <!-- ── Navigation ─────────────────────────────────────────── -->
+  <nav class="nav-bar">
+    <div class="nav-inner">
+
+      <!-- Brand -->
+      <a href="/" class="nav-brand">
+        <div class="nav-brand-icon">🏏</div>
+        <span class="nav-brand-name">Score<span>Stats</span></span>
+      </a>
+
+      <!-- Desktop nav links -->
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/"         class="{% if request.path == '/' %}active{% endif %}">Dashboard</a></li>
+        <li><a href="/matches"  class="{% if '/match' in request.path %}active{% endif %}">Matches</a></li>
+        <li><a href="/teams"    class="{% if '/team' in request.path %}active{% endif %}">Teams</a></li>
+        <li><a href="/players"  class="{% if '/player' in request.path %}active{% endif %}">Players</a></li>
+        <li><a href="/analytics" class="{% if '/analytics' in request.path %}active{% endif %}">Analytics</a></li>
+      </ul>
+
+      <!-- Mobile hamburger -->
+      <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6"  x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
     
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -94,16 +80,16 @@
     </main>
     
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white mt-12">
+    <footer class="mt-12" style="background:#0f2742;color:#d7e5f3;">
         <div class="container mx-auto px-6 py-8">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-4 md:mb-0">
                     <p class="text-sm">&copy; 2026 Cricket Analytics. All rights reserved.</p>
                 </div>
                 <div class="flex space-x-4">
-                    <a href="#" class="text-sm hover:text-blue-400">About</a>
-                    <a href="#" class="text-sm hover:text-blue-400">Contact</a>
-                    <a href="#" class="text-sm hover:text-blue-400">API Docs</a>
+                    <a href="#" class="text-sm hover:text-cyan-300">About</a>
+                    <a href="#" class="text-sm hover:text-cyan-300">Contact</a>
+                    <a href="#" class="text-sm hover:text-cyan-300">API Docs</a>
                 </div>
             </div>
         </div>
@@ -112,6 +98,12 @@
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
+    <script>
+      // Mobile nav toggle
+      document.getElementById('hamburger-btn').addEventListener('click', () => {
+        document.getElementById('nav-links').classList.toggle('open');
+      });
+    </script>
     <!-- Page-specific JS -->
     {% block scripts %}{% endblock %}
     

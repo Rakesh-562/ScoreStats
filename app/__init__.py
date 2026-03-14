@@ -3,10 +3,10 @@ from app.config import config
 from app.websockets import register_socket_events
 from app.extensions import db,socketio,cache,login_manager,migrate
 def create_app(config_name="default"):
-    """ Applicaion factory function 
-    Creates and config Flask application
+    """ Application factory function 
+    Creates and configures a Flask application
      Args:
-      config_name;'development','production','testing'or 'default'
+      config_name: 'development','production','testing' or 'default'
        returns:
         Configured Flask Application. """
     app=Flask(__name__)
@@ -26,24 +26,4 @@ def create_app(config_name="default"):
             Team, Player, Match, Inning, Ball,
             BattingScorecard, BowlingScorecard, Partnership
         )
-        if config_name=="development":
-            db.create_all()
     return app
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

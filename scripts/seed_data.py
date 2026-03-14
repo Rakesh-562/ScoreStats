@@ -1,3 +1,8 @@
+import sys
+import os
+# Ensure the project root is on the path so `app` is importable
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from app import create_app
 from app.extensions import db
 from app.models import Team,Player
@@ -86,7 +91,10 @@ def create_matches(team1,team2,match_num):
     match=MatchService.create_match(team_1_id=team1,team_2_id=team2,match_date=datetime.strptime(f"2024-07-{match_num+1:02d} 19:00:00", "%Y-%m-%d %H:%M:%S"),over_limit=20,match_type='T20')
     print(f"Created match ID: {match.id} between Team {team1} and Team {team2}")
     toss_winner=random.choice([team1,team2])
-    toss_decision=random.choice(['bat','bowl'])
+    # Model expects 'bat' or 'field' (not 'bowl')
+    toss_decision=random.choice(['bat','field'])
+    # Persist toss to DB
+    MatchService.record_toss(match.id,toss_winner,toss_decision)
     if toss_decision=='bat':
         batting_first=toss_winner
         bowling_first=team2 if toss_winner==team1 else team1    
@@ -149,14 +157,16 @@ def simulate_innings(match_id,batting_team,bowling_team,innings_num):
         extra_type = None
         
         if is_extra:
-            extra_type = random.choice(['wide', 'no-ball', 'bye'])
+            # 'bye' is a legal delivery; 'wide'/'no-ball' are not
+            extra_type = random.choice(['wide', 'no-ball', 'bye', 'leg-bye'])
             extra_runs = 1
             is_legal = extra_type not in ['wide', 'no-ball']
         else:
             is_legal = True
 
         # Wicket probability (5% base, increases in death overs)
-        over_num = ball_num // 6
+        # Use balls_bowled (legal balls so far) for accurate over tracking
+        over_num = balls_bowled // 6
         wicket_probability = 0.05 + (0.02 if over_num >= 15 else 0)
         is_wicket = is_legal and (random.random() < wicket_probability)
         

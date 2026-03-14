@@ -17,12 +17,20 @@ class Match(db.Model):
     updated_at=db.Column(db.DateTime,default=datetime.utcnow,onupdate=datetime.utcnow,nullable=False,comment="Record Update Timestamp")
     status=db.Column(db.String(50),default='scheduled',nullable=False,comment="Match Status (scheduled, ongoing, completed)")
     toss_winner=db.Column(db.Integer,db.ForeignKey('team.id'),comment="Team ID who won the toss")
+    toss_team = db.relationship("Team", foreign_keys=[toss_winner], backref="toss_wins")
     toss_decision=db.Column(db.String(10),comment="Toss Decision (bat/field)")
     # Relationships
     innings=db.relationship("Inning",backref="match",lazy='dynamic',cascade='all,delete-orphan',order_by='Inning.innings_number')
+    team1 = db.relationship("Team", foreign_keys=[team_1_id], backref="matches_as_team1")
+    team2 = db.relationship("Team", foreign_keys=[team_2_id], backref="matches_as_team2")
+    
     winner_id=db.Column(db.Integer,db.ForeignKey('team.id'),comment="Team ID who won the match")
+    winner_team = db.relationship("Team", foreign_keys=[winner_id], backref="wins")
+    
     win_margin=db.Column(db.String(50),comment="Margin of Victory (runs/wickets)")
+    
     man_of_the_match=db.Column(db.Integer,db.ForeignKey('player.id'),comment="PlayerID awarded Man of the Match")
+    mom_player = db.relationship("Player", foreign_keys=[man_of_the_match], backref="man_of_the_match_awards")
     def __init__(self,**kwargs):
         super(Match,self).__init__(**kwargs)
         if self.team_1_id and self.team_2_id and self.team_1_id==self.team_2_id:

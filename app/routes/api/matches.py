@@ -20,7 +20,7 @@ def get_all_matches():
 def get_match(match_id):
     summary=MatchService.get_match_summary(match_id)
     if not summary:
-        return jsonify({'success':False,'error':'Match not found '})
+        return jsonify({'success':False,'error':'Match not found'}),404
     return jsonify({
         'success':True,'match':summary
     }),200

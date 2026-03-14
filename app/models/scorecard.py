@@ -2,7 +2,7 @@ from app.extensions import db
 class BattingScorecard(db.Model):
     """
     Docstring for BattingScorecard
-    batting statistics formthe player 
+    batting statistics from the player 
     updated automatically each time a ball is recorded  
     """
     __tablename__="batting_scorecard"
@@ -22,7 +22,7 @@ class BattingScorecard(db.Model):
     is_out=db.Column(db.Boolean,default=False)
     dismissal_type=db.Column(db.String(30),comment="How Player got out")
     bowler_id=db.Column(db.Integer,db.ForeignKey("player.id"),comment="Bowler who took wicket")
-    fielder_id=db.Column(db.Integer,db.ForeignKey("player.id"),comment="feilder involved in dismissal")
+    fielder_id=db.Column(db.Integer,db.ForeignKey("player.id"),comment="Fielder involved in dismissal")
     batting_position=db.Column(db.Integer,comment="1=opener,3=first down")
     # unique constraint to prevent duplicate entries
     __table_args__=(db.UniqueConstraint('innings_id','player_id',name='unique_inning_player'),)
@@ -62,7 +62,7 @@ class BattingScorecard(db.Model):
             self.fours += 1
         elif ball.runs_scored == 6:
             self.sixes += 1
-        elif ball.runs_scored == 0:
+        elif ball.runs_scored == 0 and ball.is_legal_delivery:
             self.dots += 1
         # Update strike rate
         if self.balls_faced > 0:
@@ -141,8 +141,9 @@ class BowlingScorecard(db.Model):
             self.overs_bowled = self.balls_bowled // 6 + (self.balls_bowled % 6) / 10.0
             if self.balls_bowled % 6 == 0:
                 # Check for maiden over
-                last_over_balls = [b for b in ball.inning.balls if b.over_number == (self.overs_bowled - 1) * 6]
-                if all(b.runs_scored == 0 and not b.is_wicket for b in last_over_balls):
+                completed_over = (self.balls_bowled // 6) - 1
+                last_over_balls = [b for b in ball.inning.balls if b.over_number == completed_over and b.bowler_id == self.player_id]
+                if last_over_balls and sum((b.runs_scored + b.extra_runs) for b in last_over_balls) == 0:
                     self.maidens += 1
         # Update runs conceded
         self.runs_conceded += ball.runs_scored + ball.extra_runs
@@ -157,7 +158,8 @@ class BowlingScorecard(db.Model):
         if ball.runs_scored == 0 and ball.extra_runs == 0:
             self.dots += 1
         # Update wickets taken
-        if ball.is_wicket and ball.bowler_id == self.player_id:
+        bowler_wicket_types = {'bowled', 'caught', 'lbw', 'stumped', 'hit-wicket'}
+        if ball.is_wicket and ball.bowler_id == self.player_id and (ball.wicket_type in bowler_wicket_types):
             self.wickets_taken += 1
         # Update calculated stats
         if self.overs_bowled > 0:

@@ -9,7 +9,7 @@ def get_all_players():
     query=Player.query
     team_id=request.args.get('team_id',type=int)
     if team_id:
-        query=query.filter(team_id=team_id)
+        query=query.filter_by(team_id=team_id)
     players=query.all()
     return jsonify({
         'success':True,'count':len(players),'players':[player.to_dict() for player in players]

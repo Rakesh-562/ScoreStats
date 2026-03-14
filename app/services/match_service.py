@@ -1,9 +1,7 @@
-import random
+from random import random, choice
 from app.extensions import db
 from app.models import Match,Team,Inning
 from datetime import datetime
-import random
-from random import choice
 class MatchService:
     '''
     Handles match lifecycle and operations.
@@ -26,8 +24,8 @@ class MatchService:
         if team_2_id is None:
             team_2_id = kwargs.pop("team2_id", None)
 
-        team1=Team.query.get(team_1_id)
-        team2=Team.query.get(team_2_id)
+        team1=db.session.get(Team,team_1_id)
+        team2=db.session.get(Team,team_2_id)
         if not team1 or not team2:
             raise ValueError(f"Invalid team ids")
         if team_1_id==team_2_id:
@@ -48,7 +46,7 @@ class MatchService:
         '''
         record toss result
         '''
-        match =Match.query.get(match_id)
+        match =db.session.get(Match,match_id)
         if not match:
             raise ValueError(f"Match {match_id} not found")
         toss_winner_id=random.choice([match.team_1_id,match.team_2_id]) if toss_winner_id is None or toss_winner_id not in (match.team_1_id,match.team_2_id) else toss_winner_id
@@ -59,7 +57,7 @@ class MatchService:
         return match
     @staticmethod
     def get_match_summary(match_id):
-        match=Match.query.get(match_id)
+        match=db.session.get(Match,match_id)
         if not match:
             raise ValueError(f"Match {match_id} not found")
         innings=Inning.query.filter_by(match_id=match_id).order_by(Inning.innings_number).all()
@@ -79,8 +77,8 @@ class MatchService:
     def update_match_status(match_id,status):
         valid_statuses=['scheduled','live','completed','abandoned']
         if status not in valid_statuses:
-            raise ValueError(f"Invalid status,Must be on of {valid_statuses}")
-        match=Match.query.get(match_id)
+            raise ValueError(f"Invalid status, must be one of {valid_statuses}")
+        match=db.session.get(Match,match_id)
         if not match:
             raise ValueError(f"Match {match_id} not found")
         match.status=status

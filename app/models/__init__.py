@@ -10,4 +10,4 @@ from .innings import Inning
 from .scorecard import BattingScorecard,BowlingScorecard
 # from .tournament import Tournament
 from .patnership import Partnership
-__all__=['Team','Match','Tournament','Player','Ball','Commentary','Highlights','Inning','BattingScorecard','BowlingScorecard','Partnership']
+__all__=['Team','Match','Player','Ball','Inning','BattingScorecard','BowlingScorecard','Partnership']
