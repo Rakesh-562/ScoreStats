@@ -324,12 +324,9 @@ def coefficient_of_variation(values: Sequence[float]) -> float:
 
     variance = sum((x - mu) ** 2 for x in values) / n
     return math.sqrt(variance) / mu
-
-
 # ---------------------------------------------------------------------------
 # Profile builders
 # ---------------------------------------------------------------------------
-
 
 def compute_batting_profile(stats: BattingStats) -> BattingStats:
     """
@@ -339,7 +336,7 @@ def compute_batting_profile(stats: BattingStats) -> BattingStats:
 
         BI = 0.35 · (avg / 100)
            + 0.25 · (SR  / 200)
-           + 0.25 · (1 − Gini)
+           + 0.25 · (1 - Gini)
            + 0.15 · boundary_pct
 
     Each component is normalised to [0, 1] before weighting so the
@@ -390,8 +387,8 @@ def compute_bowling_profile(stats: BowlingStats) -> BowlingStats:
 
     **Bowling Index formula**::
 
-        BI = 0.35 · (1 − eco_norm)
-           + 0.40 · (1 − avg_norm)
+        BI = 0.35 · (1 - eco_norm)
+           + 0.40 · (1 -avg_norm)
            + 0.25 · dot_entropy_score
 
     where::
@@ -464,8 +461,8 @@ def topsis(
 
     5. **Euclidean distances**:
 
-       * ``d⁺[i] = ‖v[i] − A⁺‖₂``
-       * ``d⁻[i] = ‖v[i] − A⁻‖₂``
+       * ``d⁺[i] = ‖v[i] - A⁺‖₂``
+       * ``d⁻[i] = ‖v[i] - A⁻‖₂``
 
     6. **Closeness coefficient**: ``C[i] = d⁻[i] / (d⁺[i] + d⁻[i])``
        ``C ∈ [0, 1]``; ``C → 1`` indicates proximity to the ideal solution.
@@ -831,6 +828,46 @@ class AnalyticsService:
         return lookup
 
     @staticmethod
+    def _batting_component_breakdown(stats: BattingStats) -> dict:
+        avg_norm = min(stats.average, _AVG_CAP) / _AVG_CAP
+        sr_norm = min(stats.strike_rate, _SR_CAP) / _SR_CAP
+        consistency = 1.0 - stats.gini
+        return {
+            "average": round(stats.average, 2),
+            "strike_rate": round(stats.strike_rate, 2),
+            "gini": round(stats.gini, 4),
+            "boundary_pct": round(stats.boundary_pct, 4),
+            "avg_norm": round(avg_norm, 4),
+            "sr_norm": round(sr_norm, 4),
+            "consistency": round(consistency, 4),
+            "weighted_average": round(_BI_W_AVG * avg_norm, 4),
+            "weighted_strike_rate": round(_BI_W_SR * sr_norm, 4),
+            "weighted_consistency": round(_BI_W_CONSISTENCY * consistency, 4),
+            "weighted_boundary": round(_BI_W_BOUNDARY * stats.boundary_pct, 4),
+            "batting_index": round(stats.batting_index, 4),
+        }
+
+    @staticmethod
+    def _bowling_component_breakdown(stats: BowlingStats) -> dict:
+        eco_norm = min(stats.economy_rate, _ECO_CAP) / _ECO_CAP
+        finite_avg = stats.bowling_average if math.isfinite(stats.bowling_average) else _BOWL_AVG_CAP
+        avg_norm = min(finite_avg, _BOWL_AVG_CAP) / _BOWL_AVG_CAP
+        de_score = dot_entropy_score(stats.ball_outcomes)
+        return {
+            "economy_rate": round(stats.economy_rate, 2),
+            "bowling_average": round(stats.bowling_average, 2) if math.isfinite(stats.bowling_average) else None,
+            "dot_pct": round(stats.dot_pct, 4),
+            "entropy": round(stats.entropy, 4),
+            "dot_entropy_score": round(de_score, 4),
+            "eco_norm": round(eco_norm, 4),
+            "avg_norm": round(avg_norm, 4),
+            "weighted_economy": round(_BWI_W_ECO * (1.0 - eco_norm), 4),
+            "weighted_average": round(_BWI_W_AVG * (1.0 - avg_norm), 4),
+            "weighted_entropy": round(_BWI_W_ENTROPY * de_score, 4),
+            "bowling_index": round(stats.bowling_index, 4),
+        }
+
+    @staticmethod
     def _selected_team_summary(
         team,
         selection: dict[str, list[PlayerScore]],
@@ -839,7 +876,7 @@ class AnalyticsService:
     ) -> dict:
         selected_lookup = AnalyticsService._selection_to_lookup(selection)
         squad = []
-        for player in team.players.order_by("Player.name").all():
+        for player in team.players.all():
             if player.id not in selected_lookup:
                 continue
             batting = batting_index[player.id]
@@ -862,6 +899,8 @@ class AnalyticsService:
                 "entropy": round(bowling.entropy, 4),
                 "career_runs": batting.total_runs,
                 "career_wickets": bowling.wickets,
+                "batting_breakdown": AnalyticsService._batting_component_breakdown(batting),
+                "bowling_breakdown": AnalyticsService._bowling_component_breakdown(bowling),
             })
 
         batting_values = [batting_index[p["player_id"]].batting_index for p in squad]
@@ -935,7 +974,7 @@ class AnalyticsService:
 
     @classmethod
     def _build_team_preview(cls, team) -> tuple[dict, dict[int, BattingStats], dict[int, BowlingStats]]:
-        players = team.players.order_by("Player.name").all()
+        players = team.players.all()
         if not players:
             raise InsufficientDataError(f"Team team_id={team.id} has no players.")
 
@@ -972,7 +1011,7 @@ class AnalyticsService:
 
         balls = (
             db.session.query(Ball)
-            .filter(Ball.innings_id == innings_id)
+            .filter(Ball.inning_id == innings_id)
             .order_by(Ball.over_number, Ball.ball_number)
             .all()
         )
@@ -1016,7 +1055,7 @@ class AnalyticsService:
 
         balls = (
             db.session.query(Ball)
-            .filter(Ball.innings_id == innings_id)
+            .filter(Ball.inning_id == innings_id)
             .order_by(Ball.over_number, Ball.ball_number)
             .all()
         )
@@ -1201,7 +1240,7 @@ class AnalyticsService:
         balls = (
             db.session.query(Ball)
             .filter(Ball.striker_id == player_id)
-            .order_by(Ball.innings_id, Ball.over_number, Ball.ball_number)
+            .order_by(Ball.inning_id, Ball.over_number, Ball.ball_number)
             .all()
         )
         if not balls:
@@ -1239,7 +1278,7 @@ class AnalyticsService:
         balls = (
             db.session.query(Ball)
             .filter(Ball.bowler_id == player_id)
-            .order_by(Ball.innings_id, Ball.over_number, Ball.ball_number)
+            .order_by(Ball.inning_id, Ball.over_number, Ball.ball_number)
             .all()
         )
         if not balls:

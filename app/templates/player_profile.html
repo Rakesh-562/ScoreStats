@@ -1,127 +1,146 @@
-﻿<!-- app/templates/player_profile.html -->
 {% extends "base.html" %}
-
 {% block title %}{{ player.name }} - Player Profile{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    
-    <!-- Back Button -->
-    <a href="{{ url_for('pages.players_list') }}" class="flex items-center" style="color:var(--accent-orange);">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-        </svg>
-        Back to Players
-    </a>
-    
-    <!-- Player Header -->
-    <div class="rounded-lg shadow-lg p-8 text-white" style="background:linear-gradient(90deg, var(--accent-red), var(--accent-orange));">
-        <div class="flex items-center space-x-6">
-            <!-- Player Avatar -->
-            <div class="w-24 h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-4xl font-bold">
-                {{ player.jersey_number or '?' }}
-            </div>
-            
-            <!-- Player Info -->
-            <div class="flex-1">
-                <h1 class="text-4xl font-bold mb-2">{{ player.name }}</h1>
-                <div class="flex items-center space-x-4 text-sm">
-                    <span class="px-3 py-1 bg-white bg-opacity-20 rounded-full">
-                        {{ player.role }}
-                    </span>
-                    <span>{{ player.team.name if player.team else 'No Team' }}</span>
-                    <span>&bull;</span>
-                    <span>{{ player.batting_style or 'N/A' }}</span>
-                    {% if player.bowling_style %}
-                    <span>&bull;</span>
-                    <span>{{ player.bowling_style }}</span>
-                    {% endif %}
-                </div>
-            </div>
+<div class="player-profile-shell">
+  <a href="{{ url_for('pages.players_list') }}" class="player-profile-back">
+    <span>&larr;</span>
+    <span>Back to Players</span>
+  </a>
+
+  <section class="player-hero animate-in">
+    <div class="player-hero-badge">Player Profile</div>
+    <div class="player-hero-main">
+      <div class="player-hero-avatar">#{{ player.jersey_number or '?' }}</div>
+      <div class="player-hero-copy">
+        <h1 class="player-hero-name">{{ player.name }}</h1>
+        <div class="player-hero-meta">
+          <span class="player-hero-pill">{{ player.role or 'Player' }}</span>
+          <span>{{ player.team.name if player.team else 'No Team' }}</span>
+          <span>{{ player.batting_style or 'Batting style not set' }}</span>
+          {% if player.bowling_style %}
+          <span>{{ player.bowling_style }}</span>
+          {% endif %}
         </div>
+      </div>
     </div>
-    
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <!-- Batting Stats -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <svg class="w-6 h-6 mr-2" style="color:var(--accent-orange);" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                </svg>
-                Batting Statistics
-            </h2>
-            
-            <div class="space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Runs</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.batting.runs }}</span>
-                </div>
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Balls Faced</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.batting.balls_faced }}</span>
-                </div>
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Average</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.batting.average }}</span>
-                </div>
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Strike Rate</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.batting.strike_rate }}</span>
-                </div>
-                <div class="grid grid-cols-2 gap-4 pt-2">
-                    <div class="text-center p-3 bg-green-50 rounded-lg">
-                        <p class="text-3xl font-bold text-green-600">{{ stats.batting.fours }}</p>
-                        <p class="text-sm text-gray-600">Fours</p>
-                    </div>
-                    <div class="text-center p-3 rounded-lg" style="background:#fff3dc;">
-                        <p class="text-3xl font-bold" style="color:var(--accent-orange);">{{ stats.batting.sixes }}</p>
-                        <p class="text-sm text-gray-600">Sixes</p>
-                    </div>
-                </div>
-            </div>
+    <div class="player-hero-stats">
+      <div class="player-hero-stat">
+        <span>Runs</span>
+        <strong>{{ stats.batting.runs }}</strong>
+      </div>
+      <div class="player-hero-stat">
+        <span>Wickets</span>
+        <strong>{{ stats.bowling.wickets }}</strong>
+      </div>
+      <div class="player-hero-stat">
+        <span>Strike Rate</span>
+        <strong>{{ stats.batting.strike_rate }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="player-overview-grid">
+    <article class="player-stat-panel animate-in delay-1">
+      <div class="player-panel-head">
+        <div>
+          <div class="section-label">Batting</div>
+          <h2>Career Batting</h2>
         </div>
-        
-        <!-- Bowling Stats -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <svg class="w-6 h-6 mr-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z"/>
-                </svg>
-                Bowling Statistics
-            </h2>
-            
-            <div class="space-y-4">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Wickets</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.bowling.wickets }}</span>
-                </div>
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Runs Conceded</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.bowling.runs_conceded }}</span>
-                </div>
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Average</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.bowling.average }}</span>
-                </div>
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Economy</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.bowling.economy }}</span>
-                </div>
-                <div class="flex justify-between items-center border-b pb-3">
-                    <span class="text-gray-600">Strike Rate</span>
-                    <span class="text-2xl font-bold text-gray-800">{{ stats.bowling.strike_rate }}</span>
-                </div>
-            </div>
+        <span class="player-panel-chip amber">Bat</span>
+      </div>
+      <div class="player-metric-grid">
+        <div class="player-metric-card">
+          <span>Runs</span>
+          <strong>{{ stats.batting.runs }}</strong>
         </div>
+        <div class="player-metric-card">
+          <span>Balls Faced</span>
+          <strong>{{ stats.batting.balls_faced }}</strong>
+        </div>
+        <div class="player-metric-card">
+          <span>Average</span>
+          <strong>{{ stats.batting.average }}</strong>
+        </div>
+        <div class="player-metric-card">
+          <span>Strike Rate</span>
+          <strong>{{ stats.batting.strike_rate }}</strong>
+        </div>
+      </div>
+      <div class="player-accent-grid">
+        <div class="player-accent-card fours">
+          <span>Fours</span>
+          <strong>{{ stats.batting.fours }}</strong>
+        </div>
+        <div class="player-accent-card sixes">
+          <span>Sixes</span>
+          <strong>{{ stats.batting.sixes }}</strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="player-stat-panel animate-in delay-2">
+      <div class="player-panel-head">
+        <div>
+          <div class="section-label">Bowling</div>
+          <h2>Career Bowling</h2>
+        </div>
+        <span class="player-panel-chip green">Bowl</span>
+      </div>
+      <div class="player-metric-grid">
+        <div class="player-metric-card">
+          <span>Wickets</span>
+          <strong>{{ stats.bowling.wickets }}</strong>
+        </div>
+        <div class="player-metric-card">
+          <span>Runs Conceded</span>
+          <strong>{{ stats.bowling.runs_conceded }}</strong>
+        </div>
+        <div class="player-metric-card">
+          <span>Average</span>
+          <strong>{{ stats.bowling.average }}</strong>
+        </div>
+        <div class="player-metric-card">
+          <span>Economy</span>
+          <strong>{{ stats.bowling.economy }}</strong>
+        </div>
+        <div class="player-metric-card player-metric-card-wide">
+          <span>Strike Rate</span>
+          <strong>{{ stats.bowling.strike_rate }}</strong>
+        </div>
+        <div class="player-metric-card player-metric-card-wide subtle">
+          <span>Overs</span>
+          <strong>{{ stats.bowling.overs }}</strong>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="player-story-panel animate-in delay-3">
+    <div class="player-panel-head">
+      <div>
+        <div class="section-label">Snapshot</div>
+        <h2>Quick Read</h2>
+      </div>
     </div>
-    
-    <!-- Recent Matches -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Performances</h2>
-        <p class="text-gray-500 text-center py-8">Recent performance data is not added yet.</p>
+    <div class="player-story-grid">
+      <div class="player-story-card">
+        <span>Primary Role</span>
+        <strong>{{ player.role or 'Not set' }}</strong>
+      </div>
+      <div class="player-story-card">
+        <span>Team</span>
+        <strong>{{ player.team.short_name if player.team else 'NA' }}</strong>
+      </div>
+      <div class="player-story-card">
+        <span>Batting Style</span>
+        <strong>{{ player.batting_style or 'NA' }}</strong>
+      </div>
+      <div class="player-story-card">
+        <span>Bowling Style</span>
+        <strong>{{ player.bowling_style or 'NA' }}</strong>
+      </div>
     </div>
-    
+  </section>
 </div>
 {% endblock %}

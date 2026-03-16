@@ -28,9 +28,9 @@
 
   <section class="analytics-ribbon animate-in delay-1">
     <div class="analytics-ribbon-card">
-      <div class="stat-label">Upcoming Matches</div>
-      <div class="stat-value">{{ matches|selectattr('status', 'equalto', 'scheduled')|list|length }}</div>
-      <div class="stat-sub">ready for preview</div>
+      <div class="stat-label">Preview Matches</div>
+      <div class="stat-value">{{ matches|length }}</div>
+      <div class="stat-sub">scheduled or completed</div>
     </div>
     <div class="analytics-ribbon-card">
       <div class="stat-label">Teams Available</div>
@@ -55,20 +55,21 @@
       </div>
       <div class="analytics-form-row">
         <label class="analytics-field">
-          <span>Scheduled Match</span>
+          <span>Match</span>
           <select id="preview-match" class="form-input">
-            <option value="">Select upcoming match</option>
-            {% for match in matches if match.status == 'scheduled' %}
+            <option value="">Select match</option>
+            {% for match in matches %}
             <option value="{{ match.id }}">
               #{{ match.id }} - {{ match.team1.name if match.team1 else ('Team ' ~ match.team_1_id) }}
               vs {{ match.team2.name if match.team2 else ('Team ' ~ match.team_2_id) }}
+              [{{ match.status|upper }}]
             </option>
             {% endfor %}
           </select>
         </label>
         <button id="preview-load-btn" class="btn btn-primary">Build Preview</button>
       </div>
-      <div id="preview-status" class="analytics-status">Choose a scheduled match to generate both playing XIs and the matchup preview.</div>
+      <div id="preview-status" class="analytics-status">Choose any match to generate both playing XIs and the matchup preview.</div>
       <div id="matchup-board" class="analytics-matchup-board"></div>
       <div id="aspect-grid" class="analytics-overview-grid"></div>
     </article>
@@ -84,31 +85,33 @@
       <div id="xi-team-grid" class="analytics-team-grid"></div>
     </article>
 
-    <article class="analytics-panel animate-in delay-4">
-      <div class="analytics-panel-header">
-        <div>
-          <div class="section-label">Batting Read</div>
-          <h2>Player Gini Interpretation</h2>
+    <div class="analytics-read-grid">
+      <article class="analytics-panel analytics-panel-half animate-in delay-4">
+        <div class="analytics-panel-header">
+          <div>
+            <div class="section-label">Batting Read</div>
+            <h2>Player Gini Interpretation</h2>
+          </div>
+          <span class="analytics-chip amber">Players</span>
         </div>
-        <span class="analytics-chip amber">Players</span>
-      </div>
-      <div id="batting-status" class="analytics-status">Load a match preview to inspect each selected batter using career consistency data.</div>
-      <div id="batting-spotlight" class="analytics-spotlight"></div>
-      <div id="batting-cards" class="analytics-list"></div>
-    </article>
+        <div id="batting-status" class="analytics-status">Load a match preview to inspect each selected batter using career consistency data.</div>
+        <div id="batting-spotlight" class="analytics-spotlight"></div>
+        <div id="batting-cards" class="analytics-list"></div>
+      </article>
 
-    <article class="analytics-panel animate-in delay-5">
-      <div class="analytics-panel-header">
-        <div>
-          <div class="section-label">Bowling Read</div>
-          <h2>Player Bowling Interpretation</h2>
+      <article class="analytics-panel analytics-panel-half animate-in delay-5">
+        <div class="analytics-panel-header">
+          <div>
+            <div class="section-label">Bowling Read</div>
+            <h2>Player Bowling Interpretation</h2>
+          </div>
+          <span class="analytics-chip green">Players</span>
         </div>
-        <span class="analytics-chip green">Players</span>
-      </div>
-      <div id="bowling-status" class="analytics-status">Load a match preview to inspect each selected bowler using career bowling control data.</div>
-      <div id="bowling-spotlight" class="analytics-spotlight"></div>
-      <div id="bowling-cards" class="analytics-list"></div>
-    </article>
+        <div id="bowling-status" class="analytics-status">Load a match preview to inspect each selected bowler using career bowling control data.</div>
+        <div id="bowling-spotlight" class="analytics-spotlight"></div>
+        <div id="bowling-cards" class="analytics-list"></div>
+      </article>
+    </div>
 
     <article class="analytics-panel analytics-panel-wide animate-in delay-5">
       <div class="analytics-panel-header">
@@ -124,7 +127,7 @@
           <select id="career-player" class="form-input">
             <option value="">Select player</option>
             {% for player in players %}
-            <option value="{{ player.id }}">{{ player.name }} - {{ player.role or 'Player' }}</option>
+            <option value="{{ player.id }}" data-role="{{ player.role or 'Player' }}">{{ player.name }} - {{ player.role or 'Player' }}</option>
             {% endfor %}
           </select>
         </label>
@@ -208,6 +211,21 @@
       document.getElementById("career-player").value = String(playerId);
       document.getElementById("career-stat-type").value = preferredType || "batting";
       document.getElementById("career-load-btn").click();
+    }
+
+    function inferCareerModeFromRole() {
+      const playerSelect = document.getElementById("career-player");
+      const selected = playerSelect.options[playerSelect.selectedIndex];
+      if (!selected) {
+        return;
+      }
+      const role = (selected.getAttribute("data-role") || "").toLowerCase();
+      const modeSelect = document.getElementById("career-stat-type");
+      if (role === "bowler") {
+        modeSelect.value = "bowling";
+      } else {
+        modeSelect.value = "batting";
+      }
     }
 
     function renderMatchupBoard(data) {
@@ -463,7 +481,7 @@
     document.getElementById("preview-load-btn").addEventListener("click", async () => {
       const matchId = document.getElementById("preview-match").value;
       if (!matchId) {
-        setStatus("preview-status", "Select an upcoming match first.", "error");
+        setStatus("preview-status", "Select a match first.", "error");
         return;
       }
       setStatus("preview-status", "Building pre-match preview...");
@@ -511,6 +529,8 @@
         setStatus("career-status", error.message, "error");
       }
     });
+
+    document.getElementById("career-player").addEventListener("change", inferCareerModeFromRole);
 
     document.addEventListener("click", (event) => {
       const trigger = event.target.closest(".analytics-click-card, .analytics-spotlight-name");

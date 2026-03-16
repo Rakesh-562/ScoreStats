@@ -250,3 +250,4 @@ print("    TOPSIS ranks each player by Euclidean distance from the ideal-best")
 print("    and ideal-worst reference vectors across all normalised criteria.")
 print("    Closeness → 1.0 means the player dominates on every criterion.")
 print()
+

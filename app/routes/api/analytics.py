@@ -389,17 +389,20 @@ def player_career(player_id: int):
     stat_type: str = params["stat_type"]
 
     if stat_type == "batting":
-        profile = AnalyticsService.player_career_batting(player_id)
+        profile = AnalyticsService.player_career_batting_safe(player_id)
         stats_payload = _batting_schema.dump(profile)
+        breakdown = AnalyticsService._batting_component_breakdown(profile)
     else:
-        profile = AnalyticsService.player_career_bowling(player_id)
+        profile = AnalyticsService.player_career_bowling_safe(player_id)
         stats_payload = _bowling_schema.dump(profile)
+        breakdown = AnalyticsService._bowling_component_breakdown(profile)
 
     return (
         jsonify({
             "player_id": player_id,
             "stat_type": stat_type,
             "stats": stats_payload,
+            "breakdown": breakdown,
         }),
         HTTPStatus.OK,
     )
