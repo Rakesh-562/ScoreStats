@@ -1,146 +1,268 @@
-{% extends "base.html" %}
-{% block title %}{{ player.name }} - Player Profile{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}{{ player.name }} — Player Profile{% endblock %}
 
 {% block content %}
-<div class="player-profile-shell">
-  <a href="{{ url_for('pages.players_list') }}" class="player-profile-back">
-    <span>&larr;</span>
-    <span>Back to Players</span>
-  </a>
+<style>
+.pp-shell { display:flex; flex-direction:column; gap:22px; }
 
-  <section class="player-hero animate-in">
-    <div class="player-hero-badge">Player Profile</div>
-    <div class="player-hero-main">
-      <div class="player-hero-avatar">#{{ player.jersey_number or '?' }}</div>
-      <div class="player-hero-copy">
-        <h1 class="player-hero-name">{{ player.name }}</h1>
-        <div class="player-hero-meta">
-          <span class="player-hero-pill">{{ player.role or 'Player' }}</span>
-          <span>{{ player.team.name if player.team else 'No Team' }}</span>
-          <span>{{ player.batting_style or 'Batting style not set' }}</span>
-          {% if player.bowling_style %}
-          <span>{{ player.bowling_style }}</span>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="player-hero-stats">
-      <div class="player-hero-stat">
-        <span>Runs</span>
-        <strong>{{ stats.batting.runs }}</strong>
-      </div>
-      <div class="player-hero-stat">
-        <span>Wickets</span>
-        <strong>{{ stats.bowling.wickets }}</strong>
-      </div>
-      <div class="player-hero-stat">
-        <span>Strike Rate</span>
-        <strong>{{ stats.batting.strike_rate }}</strong>
-      </div>
-    </div>
-  </section>
+.pp-back { display:inline-flex; align-items:center; gap:8px; color:var(--accent-orange); text-decoration:none; font-family:var(--condensed-font); font-size:12px; letter-spacing:.1em; text-transform:uppercase; }
+.pp-back:hover { color:var(--accent-gold); }
 
-  <section class="player-overview-grid">
-    <article class="player-stat-panel animate-in delay-1">
-      <div class="player-panel-head">
-        <div>
-          <div class="section-label">Batting</div>
-          <h2>Career Batting</h2>
-        </div>
-        <span class="player-panel-chip amber">Bat</span>
-      </div>
-      <div class="player-metric-grid">
-        <div class="player-metric-card">
-          <span>Runs</span>
-          <strong>{{ stats.batting.runs }}</strong>
-        </div>
-        <div class="player-metric-card">
-          <span>Balls Faced</span>
-          <strong>{{ stats.batting.balls_faced }}</strong>
-        </div>
-        <div class="player-metric-card">
-          <span>Average</span>
-          <strong>{{ stats.batting.average }}</strong>
-        </div>
-        <div class="player-metric-card">
-          <span>Strike Rate</span>
-          <strong>{{ stats.batting.strike_rate }}</strong>
-        </div>
-      </div>
-      <div class="player-accent-grid">
-        <div class="player-accent-card fours">
-          <span>Fours</span>
-          <strong>{{ stats.batting.fours }}</strong>
-        </div>
-        <div class="player-accent-card sixes">
-          <span>Sixes</span>
-          <strong>{{ stats.batting.sixes }}</strong>
-        </div>
-      </div>
-    </article>
+.pp-hero {
+  padding:32px 36px; border-radius:26px;
+  background: radial-gradient(circle at top right,rgba(255,255,255,.1),transparent 30%),
+              linear-gradient(135deg,#6e2a1c,#c4692a 52%,#e0a328 100%);
+  color:#fff9ef; box-shadow:0 20px 48px rgba(95,44,20,.2);
+}
+.pp-hero-inner { display:flex; align-items:center; gap:24px; }
+.pp-jersey { width:88px; height:88px; border-radius:50%; background:rgba(255,255,255,.16); border:1.5px solid rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font-family:var(--score-font); font-size:28px; flex-shrink:0; }
+.pp-hero-name { font-size:40px; color:#fffdf7; line-height:1.05; }
+.pp-hero-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; color:rgba(255,242,220,.85); font-size:13px; }
+.pp-hero-meta span { padding:5px 12px; border-radius:999px; background:rgba(255,255,255,.10); }
+.pp-hero-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:24px; }
+.pp-hero-stat { padding:14px 16px; border-radius:18px; background:rgba(30,12,4,.2); }
+.pp-hero-stat span { display:block; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,235,200,.65); }
+.pp-hero-stat strong { display:block; margin-top:6px; font-family:var(--score-font); font-size:26px; color:#fff9ef; }
 
-    <article class="player-stat-panel animate-in delay-2">
-      <div class="player-panel-head">
-        <div>
-          <div class="section-label">Bowling</div>
-          <h2>Career Bowling</h2>
-        </div>
-        <span class="player-panel-chip green">Bowl</span>
-      </div>
-      <div class="player-metric-grid">
-        <div class="player-metric-card">
-          <span>Wickets</span>
-          <strong>{{ stats.bowling.wickets }}</strong>
-        </div>
-        <div class="player-metric-card">
-          <span>Runs Conceded</span>
-          <strong>{{ stats.bowling.runs_conceded }}</strong>
-        </div>
-        <div class="player-metric-card">
-          <span>Average</span>
-          <strong>{{ stats.bowling.average }}</strong>
-        </div>
-        <div class="player-metric-card">
-          <span>Economy</span>
-          <strong>{{ stats.bowling.economy }}</strong>
-        </div>
-        <div class="player-metric-card player-metric-card-wide">
-          <span>Strike Rate</span>
-          <strong>{{ stats.bowling.strike_rate }}</strong>
-        </div>
-        <div class="player-metric-card player-metric-card-wide subtle">
-          <span>Overs</span>
-          <strong>{{ stats.bowling.overs }}</strong>
-        </div>
-      </div>
-    </article>
-  </section>
+.pp-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+@media(max-width:780px){ .pp-grid{grid-template-columns:1fr;} .pp-hero-stats{grid-template-columns:repeat(2,1fr);} .pp-hero-inner{flex-direction:column;align-items:flex-start;} }
 
-  <section class="player-story-panel animate-in delay-3">
-    <div class="player-panel-head">
+.pp-panel { background:linear-gradient(180deg,#fff,#f8f0e5); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow-card); }
+.pp-panel-head { padding:20px 22px 0; display:flex; align-items:flex-start; justify-content:space-between; }
+.pp-panel-head h2 { font-size:21px; }
+.pp-panel-body { padding:16px 22px 22px; }
+
+.chart-img-wrap { background:rgba(248,241,228,.7); border-radius:14px; padding:12px; margin-top:14px; }
+.chart-img-wrap img { width:100%; height:auto; border-radius:8px; display:block; }
+.chart-caption { margin-top:10px; color:var(--text-muted); font-size:13px; line-height:1.55; }
+
+.metric-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:14px; }
+.metric-card { padding:14px; border-radius:14px; background:rgba(244,236,222,.85); }
+.metric-card span { display:block; color:var(--text-muted); font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+.metric-card strong { display:block; margin-top:6px; font-family:var(--score-font); font-size:22px; color:var(--text-primary); }
+
+.pp-chip { display:inline-flex; align-items:center; padding:7px 12px; border-radius:999px; font-family:var(--condensed-font); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+.pp-chip-amber { background:rgba(217,163,25,.14); color:#9c6518; }
+.pp-chip-green { background:rgba(126,170,79,.16); color:#567121; }
+.pp-chip-blue  { background:rgba(65,122,180,.12); color:#31507b; }
+
+/* Chart loading state */
+.chart-placeholder { background:rgba(248,241,228,.7); border-radius:14px; padding:32px 16px; margin-top:14px; text-align:center; color:var(--text-muted); font-family:var(--condensed-font); letter-spacing:.06em; font-size:13px; }
+.chart-placeholder::before { content:''; display:block; width:28px; height:28px; margin:0 auto 12px; border:3px solid var(--border); border-top-color:var(--accent-green); border-radius:50%; animation:pp-spin .7s linear infinite; }
+@keyframes pp-spin { to { transform:rotate(360deg); } }
+</style>
+
+<div class="pp-shell">
+
+  <a href="{{ url_for('pages.players_list') }}" class="pp-back">← Back to Players</a>
+
+  <!-- HERO -->
+  <section class="pp-hero animate-in">
+    <div class="pp-hero-inner">
+      <div class="pp-jersey">#{{ player.jersey_number or '?' }}</div>
       <div>
-        <div class="section-label">Snapshot</div>
-        <h2>Quick Read</h2>
+        <h1 class="pp-hero-name">{{ player.name }}</h1>
+        <div class="pp-hero-meta">
+          <span>{{ player.role or 'Player' }}</span>
+          <span>{{ player.team.name if player.team else 'No Team' }}</span>
+          <span>{{ player.batting_style or '—' }}</span>
+          {% if player.bowling_style %}<span>{{ player.bowling_style }}</span>{% endif %}
+          {% if not player.is_active %}<span>Inactive</span>{% endif %}
+        </div>
       </div>
     </div>
-    <div class="player-story-grid">
-      <div class="player-story-card">
-        <span>Primary Role</span>
-        <strong>{{ player.role or 'Not set' }}</strong>
-      </div>
-      <div class="player-story-card">
-        <span>Team</span>
-        <strong>{{ player.team.short_name if player.team else 'NA' }}</strong>
-      </div>
-      <div class="player-story-card">
-        <span>Batting Style</span>
-        <strong>{{ player.batting_style or 'NA' }}</strong>
-      </div>
-      <div class="player-story-card">
-        <span>Bowling Style</span>
-        <strong>{{ player.bowling_style or 'NA' }}</strong>
-      </div>
+    <div class="pp-hero-stats">
+      <div class="pp-hero-stat"><span>Runs</span><strong>{{ stats.batting.runs }}</strong></div>
+      <div class="pp-hero-stat"><span>Wickets</span><strong>{{ stats.bowling.wickets }}</strong></div>
+      <div class="pp-hero-stat"><span>Strike Rate</span><strong>{{ stats.batting.strike_rate }}</strong></div>
+      <div class="pp-hero-stat"><span>Economy</span><strong>{{ stats.bowling.economy }}</strong></div>
     </div>
   </section>
+
+  <!-- CAREER PANELS (static stats always visible) -->
+  <div class="pp-grid">
+
+    <div class="pp-panel animate-in delay-1">
+      <div class="pp-panel-head">
+        <div><div class="section-label">Batting</div><h2>Career Batting</h2></div>
+        <span class="pp-chip pp-chip-amber">Bat</span>
+      </div>
+      <div class="pp-panel-body">
+        <div class="metric-grid">
+          <div class="metric-card"><span>Runs</span><strong>{{ stats.batting.runs }}</strong></div>
+          <div class="metric-card"><span>Balls Faced</span><strong>{{ stats.batting.balls_faced }}</strong></div>
+          <div class="metric-card"><span>Average</span><strong>{{ stats.batting.average }}</strong></div>
+          <div class="metric-card"><span>Strike Rate</span><strong>{{ stats.batting.strike_rate }}</strong></div>
+          <div class="metric-card" style="background:rgba(65,122,180,.1);">
+            <span>Fours</span><strong style="color:#31507b;">{{ stats.batting.fours }}</strong>
+          </div>
+          <div class="metric-card" style="background:rgba(217,163,25,.12);">
+            <span>Sixes</span><strong style="color:#9c6518;">{{ stats.batting.sixes }}</strong>
+          </div>
+        </div>
+        <!-- Chart: loaded async -->
+        <div class="chart-placeholder" id="bat-placeholder">Loading runs trend…</div>
+        <div class="chart-img-wrap" id="bat-chart-wrap" style="display:none;">
+          <img id="img-runs-trend" src="" alt="Runs per innings chart">
+        </div>
+        <p class="chart-caption">Bars show runs in each innings. Green means 50+, amber means 20 to 49, and red means under 20. The line shows strike rate, so strong innings appear as tall bars with a healthy line.</p>
+      </div>
+    </div>
+
+    <div class="pp-panel animate-in delay-2">
+      <div class="pp-panel-head">
+        <div><div class="section-label">Bowling</div><h2>Career Bowling</h2></div>
+        <span class="pp-chip pp-chip-green">Bowl</span>
+      </div>
+      <div class="pp-panel-body">
+        <div class="metric-grid">
+          <div class="metric-card"><span>Wickets</span><strong>{{ stats.bowling.wickets }}</strong></div>
+          <div class="metric-card"><span>Overs</span><strong>{{ (stats.bowling.overs | round(1)) }}</strong></div>
+          <div class="metric-card"><span>Average</span><strong>{{ stats.bowling.average }}</strong></div>
+          <div class="metric-card"><span>Economy</span><strong>{{ stats.bowling.economy }}</strong></div>
+          <div class="metric-card" style="grid-column:span 2;background:rgba(182,64,50,.08);">
+            <span>Runs Conceded</span><strong style="color:#8a3027;">{{ stats.bowling.runs_conceded }}</strong>
+          </div>
+        </div>
+        <div class="chart-placeholder" id="bowl-placeholder">Loading bowling trend…</div>
+        <div class="chart-img-wrap" id="bowl-chart-wrap" style="display:none;">
+          <img id="img-bowl-trend" src="" alt="Bowling per spell chart">
+        </div>
+        <p class="chart-caption">Bars show wickets per spell and the line shows economy. The best spells usually combine taller wicket bars with a lower economy line.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RADAR + SCORING MIX -->
+  <div class="pp-grid">
+
+    <div class="pp-panel animate-in delay-3">
+      <div class="pp-panel-head">
+        <div><div class="section-label">Analytics</div><h2>Consistency Profile</h2></div>
+        <span class="pp-chip pp-chip-blue" id="consistency-chip">—</span>
+      </div>
+        <div class="pp-panel-body" style="display:flex;justify-content:center;">
+        <div style="max-width:320px;width:100%;">
+          <div class="chart-placeholder" id="radar-placeholder">Loading radar…</div>
+          <div class="chart-img-wrap" id="radar-wrap" style="display:none;">
+            <img id="img-radar" src="" alt="Career radar">
+          </div>
+          <p class="chart-caption" id="radar-caption">A larger shape means a stronger all-round batting profile across average, strike rate, consistency, boundary hitting, and batting index.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pp-panel animate-in delay-3">
+      <div class="pp-panel-head">
+        <div><div class="section-label">Scoring</div><h2>Boundary Mix</h2></div>
+      </div>
+      <div class="pp-panel-body" style="display:flex;justify-content:center;">
+        <div style="max-width:320px;width:100%;">
+          <div class="chart-placeholder" id="mix-placeholder">Loading chart…</div>
+          <div class="chart-img-wrap" id="mix-wrap" style="display:none;">
+            <img id="img-scoring-mix" src="" alt="Scoring mix">
+          </div>
+          <p class="chart-caption">This shows how the player uses balls faced: blue for fours, amber for sixes, and the remaining area for all other balls. More blue and amber means a boundary-heavy scoring style.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PLAYER SNAPSHOT -->
+  <div class="pp-panel animate-in delay-3">
+    <div class="pp-panel-head"><div><div class="section-label">Snapshot</div><h2>Quick Facts</h2></div></div>
+    <div class="pp-panel-body">
+      <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="metric-card"><span>Role</span><strong style="font-size:16px;">{{ player.role or '—' }}</strong></div>
+        <div class="metric-card"><span>Team</span><strong style="font-size:16px;">{{ player.team.short_name if player.team else 'NA' }}</strong></div>
+        <div class="metric-card"><span>Batting Style</span><strong style="font-size:14px;">{{ player.batting_style or 'NA' }}</strong></div>
+        <div class="metric-card"><span>Bowling Style</span><strong style="font-size:14px;">{{ player.bowling_style or 'NA' }}</strong></div>
+      </div>
+    </div>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+const PLAYER_ID = {{ player.id }};
+
+function setRadarNarrative(data) {
+  const caption = document.getElementById('radar-caption');
+  const chip = document.getElementById('consistency-chip');
+  const statType = data.radar_stat_type || 'batting';
+  const stats = data.career_stats || {};
+  const breakdown = data.career_breakdown || {};
+
+  if (statType === 'bowling') {
+    const controlScore = Number(breakdown.dot_entropy_score || 0);
+    let label = 'Developing Control';
+    let chipClass = 'pp-chip pp-chip-amber';
+    if (controlScore >= 0.55) {
+      label = 'Strong Control';
+      chipClass = 'pp-chip pp-chip-green';
+    } else if (controlScore < 0.35) {
+      label = 'High Variance';
+      chipClass = 'pp-chip pp-chip-blue';
+    }
+    if (chip) {
+      chip.textContent = label;
+      chip.className = chipClass;
+    }
+    if (caption) {
+      caption.textContent = 'A larger shape means better bowling control. Eco Control and Wicket Efficiency reward lower economy and bowling average, while Dot %, Control Score, and Bowling Index highlight pressure and repeatability.';
+    }
+    return;
+  }
+
+  const label = stats.consistency_label || '';
+  if (chip) {
+    chip.textContent = label ? label.charAt(0).toUpperCase() + label.slice(1) : 'Batting Profile';
+    const colMap = {consistent:'pp-chip-green', moderate:'pp-chip-amber', erratic:''};
+    chip.className = `pp-chip ${colMap[label]||'pp-chip-blue'}`;
+  }
+  if (caption) {
+    caption.textContent = 'A larger shape means a stronger batting profile across average, strike rate, consistency, boundary percentage, and batting index. A spiky shape usually means the player is stronger in some areas than others.';
+  }
+}
+
+async function loadCharts() {
+  try {
+    const data = await fetch(`/api/v1/analytics/player/${PLAYER_ID}/charts`).then(r=>r.json());
+
+    setChart('img-runs-trend',  'bat-placeholder',  'bat-chart-wrap',  data.runs_trend);
+    setChart('img-bowl-trend',  'bowl-placeholder', 'bowl-chart-wrap', data.bowling_trend);
+    setChart('img-radar',       'radar-placeholder','radar-wrap',       data.radar);
+    setChart('img-scoring-mix', 'mix-placeholder',  'mix-wrap',        data.scoring_mix);
+    setRadarNarrative(data);
+  } catch(e) {
+    // Charts failed silently — static stats still readable
+    ['bat-placeholder','bowl-placeholder','radar-placeholder','mix-placeholder'].forEach(id=>{
+      const el = document.getElementById(id);
+      if (el) { el.style.animation='none'; el.textContent='No chart data yet'; }
+    });
+  }
+}
+
+function setChart(imgId, placeholderId, wrapId, b64) {
+  const img  = document.getElementById(imgId);
+  const ph   = document.getElementById(placeholderId);
+  const wrap = document.getElementById(wrapId);
+  if (img && b64) {
+    img.src = 'data:image/png;base64,' + b64;
+    if (ph)   ph.style.display   = 'none';
+    if (wrap) wrap.style.display = '';
+  } else if (ph) {
+    ph.style.animation = 'none';
+    ph.textContent = 'No data yet';
+  }
+}
+
+loadCharts();
+} )();
+</script>
 {% endblock %}
