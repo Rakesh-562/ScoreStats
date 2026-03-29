@@ -8,7 +8,7 @@ Blueprint registration
 ----------------------
 Register this blueprint in ``app/routes/api/__init__.py``::
 
-    from app.routes.api.analytics import bp as analytics_bp
+    from app.routes.api.analytics import analytics_bp as analytics_bp
     api.register_blueprint(analytics_bp, url_prefix="/analytics")
 
 All endpoints are then available under ``/api/v1/analytics/``.
@@ -63,7 +63,7 @@ from app.validators.analytics_validator import (
 
 logger = logging.getLogger(__name__)
 
-bp = Blueprint("analytics", __name__)
+analytics_bp = Blueprint("analytics", __name__)
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +112,7 @@ def _register_error_handlers(blueprint: Blueprint) -> None:
         )
 
 
-_register_error_handlers(bp)
+_register_error_handlers(analytics_bp)
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +232,7 @@ _player_score_schema_many = PlayerScoreSchema(many=True)
 # ---------------------------------------------------------------------------
 
 
-@bp.get("/innings/<int:innings_id>/batting")
+@analytics_bp.get("/innings/<int:innings_id>/batting")
 def innings_batting(innings_id: int):
     """
     Batting analytics for every batsman in the specified innings.
@@ -290,7 +290,7 @@ def innings_batting(innings_id: int):
     )
 
 
-@bp.get("/innings/<int:innings_id>/bowling")
+@analytics_bp.get("/innings/<int:innings_id>/bowling")
 def innings_bowling(innings_id: int):
     """
     Bowling analytics for every bowler in the specified innings.
@@ -320,7 +320,7 @@ def innings_bowling(innings_id: int):
     )
 
 
-@bp.post("/select-xi")
+@analytics_bp.post("/select-xi")
 def select_xi():
     """
     Run pre-match XI selection and team-vs-team comparison for a match.
@@ -363,7 +363,7 @@ def select_xi():
     )
 
 
-@bp.get("/player/<int:player_id>/career")
+@analytics_bp.get("/player/<int:player_id>/career")
 def player_career(player_id: int):
     """
     Career-aggregate analytics for a single player.
