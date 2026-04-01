@@ -159,6 +159,45 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 0;
 }
 
+/* Footer */
+.site-footer {
+  background:
+    linear-gradient(135deg, #3a2418 0%, #5d3723 55%, #74482b 100%);
+  border-top: 1px solid rgba(219, 202, 179, 0.35);
+  color: #f5e7d2;
+  position: relative;
+  overflow: hidden;
+}
+
+.site-footer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(217, 163, 25, 0.16), transparent 28%),
+    radial-gradient(circle at 85% 30%, rgba(196, 120, 41, 0.12), transparent 26%);
+  pointer-events: none;
+}
+
+.site-footer .container {
+  position: relative;
+  z-index: 1;
+}
+
+.site-footer p {
+  color: rgba(245, 231, 210, 0.82);
+}
+
+.site-footer a {
+  color: #f3d493;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.site-footer a:hover {
+  color: #fff5df;
+}
+
 /* ── Page Layout ───────────────────────────────────────────── */
 .page-container {
   max-width: 1280px;

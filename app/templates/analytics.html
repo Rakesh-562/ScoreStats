@@ -1,550 +1,471 @@
 {% extends "base.html" %}
-{% block title %}Analytics - ScoreStat{% endblock %}
+{% block title %}Analytics — ScoreStat{% endblock %}
+
 {% block content %}
-<div class="analytics-shell">
-  <section class="analytics-hero animate-in">
-    <div class="analytics-hero-copy">
-      <div class="analytics-kicker">Pre-Match Intelligence</div>
-      <h1 class="analytics-title">Pick the Best XI Before the First Ball</h1>
-      <p class="analytics-subtitle">
-        Compare two teams using player career consistency, bowling control, squad balance,
-        and projected win probability for upcoming matches.
-      </p>
-    </div>
-    <div class="analytics-hero-side">
-      <div class="analytics-orb analytics-orb-a"></div>
-      <div class="analytics-orb analytics-orb-b"></div>
-      <div class="analytics-signal">
-        <div class="analytics-signal-label">Preview Engine</div>
-        <div class="analytics-signal-grid">
-          <div><strong>XI</strong><span>Best squad</span></div>
-          <div><strong>GI</strong><span>Batting consistency</span></div>
-          <div><strong>BE</strong><span>Bowling control</span></div>
-          <div><strong>WP</strong><span>Win chance</span></div>
-        </div>
+<style>
+.an-page { display:flex; flex-direction:column; gap:28px; }
+
+/* Hero */
+.an-hero {
+  position:relative; overflow:hidden;
+  padding:36px 40px; border-radius:24px;
+  background:linear-gradient(135deg,#2c1810 0%,#5c3320 45%,#1a0f08 100%);
+  border:1px solid rgba(220,160,80,.25);
+  display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center;
+}
+.an-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse 60% 80% at 80% 50%,rgba(210,145,30,.18),transparent);
+  pointer-events:none;
+}
+.an-hero-kicker { font-family:var(--condensed-font); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:rgba(255,220,160,.65); margin-bottom:10px; }
+.an-hero-title { font-size:36px; color:#fff8ef; line-height:1.1; }
+.an-hero-sub { margin-top:10px; color:rgba(255,235,200,.72); font-size:14px; max-width:55ch; }
+.an-hero-pills { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+.an-hero-pill { padding:6px 14px; border-radius:999px; border:1px solid rgba(220,160,80,.28); background:rgba(255,255,255,.06); font-family:var(--condensed-font); font-size:12px; letter-spacing:.08em; color:rgba(255,230,180,.82); }
+.an-hero-pill strong { color:#ffd36d; }
+.an-badge-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.an-badge-card { padding:14px 18px; border-radius:16px; background:rgba(255,255,255,.06); border:1px solid rgba(255,220,150,.14); text-align:center; }
+.an-badge-val { font-family:var(--score-font); font-size:30px; color:#ffd36d; }
+.an-badge-lbl { font-family:var(--condensed-font); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,235,200,.6); margin-top:4px; }
+
+/* Tabs */
+.an-tabs { display:flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; width:fit-content; }
+.an-tab { padding:10px 22px; border:none; background:transparent; cursor:pointer; font-family:var(--condensed-font); font-size:13px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--text-muted); transition:all .18s; }
+.an-tab:not(:last-child) { border-right:1px solid var(--border); }
+.an-tab.active { background:var(--accent-green); color:#fff8ef; }
+.an-tab:not(.active):hover { background:var(--bg-deep); }
+
+/* Panels */
+.an-panel { background:linear-gradient(180deg,#fff,#f9f3ea); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow-card); overflow:hidden; }
+.an-panel-head { padding:20px 24px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.an-panel-body { padding:16px 24px 24px; }
+
+/* Chart image wrapper */
+.chart-img-wrap { background:rgba(248,241,228,.6); border-radius:14px; padding:12px; margin-top:14px; }
+.chart-img-wrap img { width:100%; height:auto; border-radius:8px; display:block; }
+.chart-label { font-family:var(--condensed-font); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
+
+/* Stat chips */
+.stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+@media(max-width:700px){ .stat-row{grid-template-columns:repeat(2,1fr);} }
+.stat-chip { padding:14px 16px; border-radius:14px; background:rgba(244,236,222,.85); text-align:center; }
+.stat-chip-val { font-family:var(--score-font); font-size:24px; color:var(--text-primary); }
+.stat-chip-lbl { font-family:var(--condensed-font); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-top:4px; }
+
+/* Player grid */
+.player-pick-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
+.player-pick-card { padding:14px 16px; border-radius:14px; border:1px solid var(--border); background:var(--bg-card); cursor:pointer; transition:all .18s; text-align:left; width:100%; }
+.player-pick-card:hover, .player-pick-card.selected { border-color:var(--accent-green); background:#fffbf2; }
+.player-pick-name { font-family:var(--display-font); font-size:15px; color:var(--text-primary); }
+.player-pick-role { font-family:var(--condensed-font); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-top:3px; }
+
+/* Loader */
+.an-loader { display:none; text-align:center; padding:40px 24px; color:var(--text-muted); font-family:var(--condensed-font); letter-spacing:.08em; font-size:13px; }
+.an-loader.visible { display:block; }
+.an-loader::before { content:''; display:block; width:32px; height:32px; margin:0 auto 14px; border:3px solid var(--border); border-top-color:var(--accent-green); border-radius:50%; animation:an-spin .7s linear infinite; }
+@keyframes an-spin { to { transform:rotate(360deg); } }
+
+/* Match select row */
+.an-form-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+.an-form-row .analytics-field { flex:1; min-width:200px; }
+
+/* Two-col chart layout */
+.chart-2col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:780px){ .chart-2col{grid-template-columns:1fr;} }
+
+/* Consistency pill */
+.con-pill { display:inline-flex; align-items:center; padding:6px 12px; border-radius:999px; font-family:var(--condensed-font); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+.con-consistent { background:rgba(126,170,79,.18); color:#567121; }
+.con-moderate   { background:rgba(217,163,25,.16); color:#9c6518; }
+.con-erratic    { background:rgba(182,64,50,.12);  color:#8a3027; }
+</style>
+
+<div class="an-page">
+
+  <!-- HERO -->
+  <section class="an-hero animate-in">
+    <div>
+      <div class="an-hero-kicker">ScoreStat Analytics Engine</div>
+      <h1 class="an-hero-title">Performance<br>Intelligence</h1>
+      <p class="an-hero-sub">Player consistency profiles, match run-flow charts, and TOPSIS-ranked XI selection — all rendered from live ball-by-ball data.</p>
+      <div class="an-hero-pills">
+        <div class="an-hero-pill"><strong>Gini</strong> Batting consistency</div>
+        <div class="an-hero-pill"><strong>Shannon H</strong> Bowling control</div>
+        <div class="an-hero-pill"><strong>TOPSIS</strong> XI selection</div>
+        <div class="an-hero-pill"><strong>Win%</strong> Match probability</div>
       </div>
+    </div>
+    <div class="an-badge-grid">
+      <div class="an-badge-card"><div class="an-badge-val">{{ matches|length }}</div><div class="an-badge-lbl">Matches</div></div>
+      <div class="an-badge-card"><div class="an-badge-val">{{ players|length }}</div><div class="an-badge-lbl">Players</div></div>
+      <div class="an-badge-card"><div class="an-badge-val">{{ matches|selectattr('status','eq','completed')|list|length }}</div><div class="an-badge-lbl">Completed</div></div>
+      <div class="an-badge-card"><div class="an-badge-val">{{ innings|length }}</div><div class="an-badge-lbl">Innings</div></div>
     </div>
   </section>
 
-  <section class="analytics-ribbon animate-in delay-1">
-    <div class="analytics-ribbon-card">
-      <div class="stat-label">Preview Matches</div>
-      <div class="stat-value">{{ matches|length }}</div>
-      <div class="stat-sub">scheduled or completed</div>
-    </div>
-    <div class="analytics-ribbon-card">
-      <div class="stat-label">Teams Available</div>
-      <div class="stat-value">{{ matches|map(attribute='team_1_id')|list|length }}</div>
-      <div class="stat-sub">scheduled match pool</div>
-    </div>
-    <div class="analytics-ribbon-card">
-      <div class="stat-label">Players Tracked</div>
-      <div class="stat-value">{{ players|length }}</div>
-      <div class="stat-sub">career database</div>
-    </div>
-  </section>
+  <!-- TABS -->
+  <div class="an-tabs">
+    <button class="an-tab active" data-view="player">Player Profile</button>
+    <button class="an-tab" data-view="match">Match Analysis</button>
+    <button class="an-tab" data-view="xi">XI Selection</button>
+  </div>
 
-  <section class="analytics-grid">
-    <article class="analytics-panel analytics-panel-wide animate-in delay-2">
-      <div class="analytics-panel-header">
-        <div>
-          <div class="section-label">Upcoming Match Preview</div>
-          <h2>Team vs Team Selection</h2>
+  <!-- ══ VIEW 1 — PLAYER ══════════════════════════════════════ -->
+  <section id="view-player" class="an-view">
+    <div class="section-label">Select a Player</div>
+    <div class="player-pick-grid">
+      {% for player in players %}
+      <button class="player-pick-card" data-player-id="{{ player.id }}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <div class="player-avatar" style="width:34px;height:34px;font-size:12px;flex-shrink:0;">{{ player.jersey_number or '?' }}</div>
+          <div class="player-pick-name">{{ player.name }}</div>
         </div>
-        <span class="analytics-chip">Projected</span>
-      </div>
-      <div class="analytics-form-row">
-        <label class="analytics-field">
-          <span>Match</span>
-          <select id="preview-match" class="form-input">
-            <option value="">Select match</option>
-            {% for match in matches %}
-            <option value="{{ match.id }}">
-              #{{ match.id }} - {{ match.team1.name if match.team1 else ('Team ' ~ match.team_1_id) }}
-              vs {{ match.team2.name if match.team2 else ('Team ' ~ match.team_2_id) }}
-              [{{ match.status|upper }}]
-            </option>
-            {% endfor %}
-          </select>
-        </label>
-        <button id="preview-load-btn" class="btn btn-primary">Build Preview</button>
-      </div>
-      <div id="preview-status" class="analytics-status">Choose any match to generate both playing XIs and the matchup preview.</div>
-      <div id="matchup-board" class="analytics-matchup-board"></div>
-      <div id="aspect-grid" class="analytics-overview-grid"></div>
-    </article>
+        <div class="player-pick-role">{{ player.role }} · {{ player.team.short_name if player.team else '—' }}</div>
+      </button>
+      {% endfor %}
+    </div>
 
-    <article class="analytics-panel analytics-panel-xl animate-in delay-3">
-      <div class="analytics-panel-header">
-        <div>
-          <div class="section-label">Best XI</div>
-          <h2>Selected Team Sheets</h2>
+    <div class="an-loader" id="player-loader"></div>
+
+    <div id="player-area" style="display:none;">
+
+      <!-- Summary bar -->
+      <div class="an-panel" style="margin-bottom:18px;">
+        <div class="an-panel-head" id="player-hero-head"></div>
+        <div class="an-panel-body">
+          <div class="stat-row" id="player-stat-chips"></div>
         </div>
-        <span class="analytics-chip amber">Career Form</span>
       </div>
-      <div id="xi-team-grid" class="analytics-team-grid"></div>
-    </article>
 
-    <div class="analytics-read-grid">
-      <article class="analytics-panel analytics-panel-half animate-in delay-4">
-        <div class="analytics-panel-header">
-          <div>
-            <div class="section-label">Batting Read</div>
-            <h2>Player Gini Interpretation</h2>
+      <!-- Runs trend + Bowling trend -->
+      <div class="chart-2col" style="margin-bottom:16px;">
+        <div class="an-panel">
+          <div class="an-panel-head">
+            <div><div class="section-label">Batting</div><h3 style="font-size:17px;">Runs Per Innings</h3></div>
+            <span class="analytics-chip amber">Trend</span>
           </div>
-          <span class="analytics-chip amber">Players</span>
-        </div>
-        <div id="batting-status" class="analytics-status">Load a match preview to inspect each selected batter using career consistency data.</div>
-        <div id="batting-spotlight" class="analytics-spotlight"></div>
-        <div id="batting-cards" class="analytics-list"></div>
-      </article>
-
-      <article class="analytics-panel analytics-panel-half animate-in delay-5">
-        <div class="analytics-panel-header">
-          <div>
-            <div class="section-label">Bowling Read</div>
-            <h2>Player Bowling Interpretation</h2>
+          <div class="an-panel-body">
+            <div class="chart-img-wrap"><img id="img-runs-trend" src="" alt="Runs trend chart"></div>
           </div>
-          <span class="analytics-chip green">Players</span>
         </div>
-        <div id="bowling-status" class="analytics-status">Load a match preview to inspect each selected bowler using career bowling control data.</div>
-        <div id="bowling-spotlight" class="analytics-spotlight"></div>
-        <div id="bowling-cards" class="analytics-list"></div>
-      </article>
+        <div class="an-panel">
+          <div class="an-panel-head">
+            <div><div class="section-label">Bowling</div><h3 style="font-size:17px;">Wickets & Economy</h3></div>
+            <span class="analytics-chip green">Trend</span>
+          </div>
+          <div class="an-panel-body">
+            <div class="chart-img-wrap"><img id="img-bowl-trend" src="" alt="Bowling trend chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Radar + Scoring mix -->
+      <div class="chart-2col">
+        <div class="an-panel">
+          <div class="an-panel-head">
+            <div><div class="section-label">Analytics</div><h3 style="font-size:17px;">Career Profile Radar</h3></div>
+            <span class="con-pill con-consistent" id="consistency-chip"></span>
+          </div>
+          <div class="an-panel-body" style="display:flex;justify-content:center;">
+            <div class="chart-img-wrap" style="max-width:320px;width:100%;">
+              <img id="img-radar" src="" alt="Career radar chart">
+            </div>
+          </div>
+        </div>
+        <div class="an-panel">
+          <div class="an-panel-head">
+            <div><div class="section-label">Scoring</div><h3 style="font-size:17px;">Boundary vs Other</h3></div>
+          </div>
+          <div class="an-panel-body" style="display:flex;justify-content:center;">
+            <div class="chart-img-wrap" style="max-width:320px;width:100%;">
+              <img id="img-scoring-mix" src="" alt="Scoring mix chart">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /player-area -->
+  </section>
+
+  <!-- ══ VIEW 2 — MATCH ═══════════════════════════════════════ -->
+  <section id="view-match" class="an-view" style="display:none;">
+    <div class="section-label">Select a Match</div>
+    <div class="an-form-row">
+      <label class="analytics-field">
+        <span>Match</span>
+        <select id="match-select" class="form-input">
+          <option value="">Choose a match…</option>
+          {% for match in matches %}
+          {% if match.status != 'scheduled' %}
+          <option value="{{ match.id }}">
+            #{{ match.id }} — {{ match.team1.name if match.team1 else 'Team '~match.team_1_id }}
+            vs {{ match.team2.name if match.team2 else 'Team '~match.team_2_id }}
+            [{{ match.status|upper }}]
+          </option>
+          {% endif %}
+          {% endfor %}
+        </select>
+      </label>
+      <button id="match-load-btn" class="btn btn-primary">Load Charts</button>
     </div>
 
-    <article class="analytics-panel analytics-panel-wide animate-in delay-5">
-      <div class="analytics-panel-header">
-        <div>
-          <div class="section-label">Player Drilldown</div>
-          <h2>Career Snapshot</h2>
-        </div>
-        <span class="analytics-chip blue">Career</span>
-      </div>
-      <div class="analytics-form-row">
-        <label class="analytics-field">
-          <span>Player</span>
-          <select id="career-player" class="form-input">
-            <option value="">Select player</option>
-            {% for player in players %}
-            <option value="{{ player.id }}" data-role="{{ player.role or 'Player' }}">{{ player.name }} - {{ player.role or 'Player' }}</option>
-            {% endfor %}
-          </select>
-        </label>
-        <label class="analytics-field analytics-field-compact">
-          <span>Mode</span>
-          <select id="career-stat-type" class="form-input">
-            <option value="batting">Batting</option>
-            <option value="bowling">Bowling</option>
-          </select>
-        </label>
-        <button id="career-load-btn" class="btn btn-primary">Load Career</button>
-      </div>
-      <div id="career-status" class="analytics-status">Click any player card above or select a player manually.</div>
-      <div id="career-hero" class="analytics-career-hero"></div>
-      <div id="career-card" class="analytics-career-card"></div>
-    </article>
+    <div class="an-loader" id="match-loader"></div>
+    <div id="match-area" style="display:none;margin-top:4px;"></div>
   </section>
+
+  <!-- ══ VIEW 3 — XI SELECTION ════════════════════════════════ -->
+  <section id="view-xi" class="an-view" style="display:none;">
+    <div class="section-label">Pre-Match XI Preview</div>
+    <div class="an-form-row">
+      <label class="analytics-field">
+        <span>Match</span>
+        <select id="preview-match" class="form-input">
+          <option value="">Select match</option>
+          {% for match in matches %}
+          <option value="{{ match.id }}">
+            #{{ match.id }} — {{ match.team1.name if match.team1 else 'Team '~match.team_1_id }}
+            vs {{ match.team2.name if match.team2 else 'Team '~match.team_2_id }}
+            [{{ match.status|upper }}]
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+      <button id="preview-load-btn" class="btn btn-primary">Build Preview</button>
+    </div>
+    <div id="preview-status" class="analytics-status" style="margin-top:12px;">Choose any match to generate both playing XIs and the matchup preview.</div>
+    <div id="matchup-board" class="analytics-matchup-board"></div>
+    <div id="aspect-grid"  class="analytics-overview-grid"></div>
+    <div id="xi-team-grid" class="analytics-team-grid" style="margin-top:18px;"></div>
+  </section>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  (function () {
-    const fmt = (value, digits = 2) => {
-      const num = Number(value);
-      return Number.isFinite(num) ? num.toFixed(digits) : "-";
-    };
+(function(){
+'use strict';
 
-    const escapeHtml = (value) => String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = (v,d=2) => { const n=Number(v); return isFinite(n)?n.toFixed(d):'-'; };
 
-    const setStatus = (id, message, tone = "") => {
-      const el = document.getElementById(id);
-      el.className = `analytics-status ${tone}`.trim();
-      el.textContent = message;
-    };
+// ── Tabs ──────────────────────────────────────────────────────
+document.querySelectorAll('.an-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.an-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.an-view').forEach(v=>v.style.display='none');
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).style.display='';
+  });
+});
 
-    const consistencyTone = (label) => {
-      if (label === "consistent") return "good";
-      if (label === "moderate") return "warn";
-      return "danger";
-    };
+// ── Player charts ─────────────────────────────────────────────
+let activePlayer = null;
+document.querySelectorAll('.player-pick-card').forEach(card=>{
+  card.addEventListener('click',()=>{
+    const pid = Number(card.dataset.playerId);
+    if (pid===activePlayer) return;
+    activePlayer=pid;
+    document.querySelectorAll('.player-pick-card').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');
+    loadPlayerCharts(pid);
+  });
+});
 
-    const entropyTone = (value) => {
-      const num = Number(value || 0);
-      if (num <= 1.2) return "good";
-      if (num <= 1.8) return "warn";
-      return "danger";
-    };
+async function loadPlayerCharts(playerId) {
+  const loader = document.getElementById('player-loader');
+  const area   = document.getElementById('player-area');
+  loader.classList.add('visible');
+  area.style.display='none';
+  try {
+    const data = await fetchJSON(`/api/v1/analytics/player/${playerId}/charts`);
+    loader.classList.remove('visible');
 
-    async function getJson(url, options) {
-      const response = await fetch(url, options);
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || data.detail || "Request failed");
-      }
-      return data;
-    }
+    // Summary
+    const s = data.career_stats || {};
+    const label = s.consistency_label || '';
+    document.getElementById('player-hero-head').innerHTML = `
+      <div>
+        <div class="section-label">Career Overview</div>
+        <h2 style="font-size:24px;">${esc(data.player_name)}</h2>
+        <div style="margin-top:6px;color:var(--text-muted);font-size:13px;">${esc(data.role)} · ${s.innings_played||0} innings · ${s.total_runs||0} runs</div>
+      </div>
+      <span class="con-pill con-${esc(label)}">${label.charAt(0).toUpperCase()+label.slice(1)} · Gini ${fmt(s.gini_coefficient,4)}</span>
+    `;
+    document.getElementById('player-stat-chips').innerHTML = [
+      ['Average', fmt(s.average)],
+      ['Strike Rate', fmt(s.strike_rate)],
+      ['Boundary %', fmt((s.boundary_pct||0)*100,1)+'%'],
+      ['Bat Index', fmt(s.batting_index,4)],
+    ].map(([l,v])=>`<div class="stat-chip"><div class="stat-chip-val">${v}</div><div class="stat-chip-lbl">${l}</div></div>`).join('');
 
-    function sparkBars(values, inverse = false) {
-      const nums = values.map(Number).filter(Number.isFinite);
-      if (!nums.length) {
-        return '<div class="analytics-spark-empty">No trend data</div>';
-      }
-      const max = Math.max(...nums, 0.0001);
-      return `
-        <div class="analytics-sparkline">
-          ${nums.map((value) => {
-            const pct = Math.max(10, Math.round((value / max) * 100));
-            return `<span class="${inverse ? "inverse" : ""}" style="height:${pct}%"></span>`;
-          }).join("")}
+    const chip = document.getElementById('consistency-chip');
+    chip.textContent = label.charAt(0).toUpperCase()+label.slice(1);
+    chip.className   = `con-pill con-${label}`;
+
+    // Set chart images
+    setImg('img-runs-trend',   data.runs_trend);
+    setImg('img-bowl-trend',   data.bowling_trend);
+    setImg('img-radar',        data.radar);
+    setImg('img-scoring-mix',  data.scoring_mix);
+
+    area.style.display='';
+  } catch(e) {
+    loader.classList.remove('visible');
+    area.innerHTML=`<p style="color:var(--accent-red);padding:16px;font-size:13px;">Error: ${esc(e.message)}</p>`;
+    area.style.display='';
+  }
+}
+
+function setImg(id, b64) {
+  const el = document.getElementById(id);
+  if (el && b64) el.src = 'data:image/png;base64,' + b64;
+}
+
+// ── Match charts ──────────────────────────────────────────────
+document.getElementById('match-load-btn').addEventListener('click', async()=>{
+  const matchId = document.getElementById('match-select').value;
+  if (!matchId) return;
+  const loader = document.getElementById('match-loader');
+  const area   = document.getElementById('match-area');
+  loader.classList.add('visible');
+  area.style.display='none';
+  try {
+    const data = await fetchJSON(`/api/v1/analytics/match/${matchId}/charts`);
+    loader.classList.remove('visible');
+    renderMatchCharts(data);
+    area.style.display='';
+  } catch(e) {
+    loader.classList.remove('visible');
+    area.innerHTML=`<p style="color:var(--accent-red);padding:16px;font-size:13px;">Error: ${esc(e.message)}</p>`;
+    area.style.display='';
+  }
+});
+
+function renderMatchCharts(data) {
+  const area = document.getElementById('match-area');
+  let html = `
+    <div class="an-panel" style="margin-bottom:18px;">
+      <div class="an-panel-head"><div><div class="section-label">Overall</div><h3 style="font-size:18px;">Run Progression</h3></div></div>
+      <div class="an-panel-body">
+        <div class="chart-img-wrap"><img src="data:image/png;base64,${data.run_progression}" alt="Run progression"></div>
+      </div>
+    </div>
+    <div class="an-panel" style="margin-bottom:18px;">
+      <div class="an-panel-head"><div><div class="section-label">Overall</div><h3 style="font-size:18px;">Runs Per Over</h3></div></div>
+      <div class="an-panel-body">
+        <div class="chart-img-wrap"><img src="data:image/png;base64,${data.over_run_rate}" alt="Runs per over"></div>
+      </div>
+    </div>
+  `;
+
+  (data.innings||[]).forEach(inn=>{
+    const targetTxt = inn.target ? `<span style="font-size:13px;color:var(--accent-gold);margin-left:10px;">Target: ${inn.target}</span>` : '';
+    html += `
+    <div class="an-panel" style="margin-bottom:18px;">
+      <div class="an-panel-head">
+        <div>
+          <div class="section-label">Innings ${inn.innings_number}</div>
+          <h3 style="font-size:20px;">${inn.total_runs}/${inn.total_wickets} <span style="font-size:13px;color:var(--text-muted);">(${inn.total_overs} ov)</span>${targetTxt}</h3>
         </div>
-      `;
-    }
-
-    function setCareerSelection(playerId, preferredType) {
-      document.getElementById("career-player").value = String(playerId);
-      document.getElementById("career-stat-type").value = preferredType || "batting";
-      document.getElementById("career-load-btn").click();
-    }
-
-    function inferCareerModeFromRole() {
-      const playerSelect = document.getElementById("career-player");
-      const selected = playerSelect.options[playerSelect.selectedIndex];
-      if (!selected) {
-        return;
-      }
-      const role = (selected.getAttribute("data-role") || "").toLowerCase();
-      const modeSelect = document.getElementById("career-stat-type");
-      if (role === "bowler") {
-        modeSelect.value = "bowling";
-      } else {
-        modeSelect.value = "batting";
-      }
-    }
-
-    function renderMatchupBoard(data) {
-      const board = document.getElementById("matchup-board");
-      const team1 = data.team_1;
-      const team2 = data.team_2;
-      const win1 = data.win_probability.team_1.chance;
-      const win2 = data.win_probability.team_2.chance;
-      board.innerHTML = `
-        <div class="analytics-scoreboard">
-          <div class="analytics-scoreboard-team">
-            <div class="analytics-scoreboard-name">${escapeHtml(team1.team_name)}</div>
-            <div class="analytics-scoreboard-meta">${team1.selected_xi.length} selected players</div>
-            <div class="analytics-scoreboard-chance">${fmt(win1, 1)}%</div>
-          </div>
-          <div class="analytics-scoreboard-mid">
-            <div class="analytics-scoreboard-kicker">Projected Winner</div>
-            <div class="analytics-scoreboard-favored">${escapeHtml(data.win_probability.favored_team)}</div>
-            <div class="analytics-winbar">
-              <span class="team-a" style="width:${Math.max(win1, 6)}%"></span>
-              <span class="team-b" style="width:${Math.max(win2, 6)}%"></span>
-            </div>
-            <div class="analytics-scoreboard-sub">${escapeHtml(data.match_type || "").toUpperCase()} preview based on career player trends</div>
-          </div>
-          <div class="analytics-scoreboard-team right">
-            <div class="analytics-scoreboard-name">${escapeHtml(team2.team_name)}</div>
-            <div class="analytics-scoreboard-meta">${team2.selected_xi.length} selected players</div>
-            <div class="analytics-scoreboard-chance">${fmt(win2, 1)}%</div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderAspectCards(comparison) {
-      const root = document.getElementById("aspect-grid");
-      root.innerHTML = comparison.map((item) => `
-        <div class="analytics-overview-card">
-          <span>${escapeHtml(item.label)}</span>
-          <strong>${escapeHtml(item.edge)}</strong>
-          <div class="analytics-overview-sub">${fmt(item.team_1_value, 3)} vs ${fmt(item.team_2_value, 3)}</div>
-        </div>
-      `).join("");
-    }
-
-    function renderTeamSheets(data) {
-      const root = document.getElementById("xi-team-grid");
-      const teams = [data.team_1, data.team_2];
-      root.innerHTML = teams.map((team) => `
-        <div class="analytics-team-card">
-          <div class="analytics-team-card-head">
-            <div>
-              <div class="analytics-team-card-name">${escapeHtml(team.team_name)}</div>
-              <div class="analytics-team-card-sub">Overall ${fmt(team.strengths.overall, 4)} · Balance ${fmt(team.strengths.balance, 4)}</div>
-            </div>
-          </div>
-          <div class="analytics-xi-grid team-mode">
-            ${team.selected_xi.map((player, index) => `
-              <button type="button" class="analytics-xi-slot analytics-click-card" data-player-id="${player.player_id}" data-stat-type="${player.role === "bowler" ? "bowling" : "batting"}">
-                <div class="analytics-xi-rank">${index + 1}</div>
-                <div class="analytics-xi-name">${escapeHtml(player.player_name)}</div>
-                <div class="analytics-xi-role">${escapeHtml(player.role)}</div>
-                <div class="analytics-xi-score">Sel ${fmt(player.selection_score, 4)}</div>
-              </button>
-            `).join("")}
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function renderBattingSpotlight(players) {
-      const root = document.getElementById("batting-spotlight");
-      if (!players.length) {
-        root.innerHTML = "";
-        return;
-      }
-      const bestIndex = [...players].sort((a, b) => Number(b.batting_index || 0) - Number(a.batting_index || 0))[0];
-      const bestConsistency = [...players].sort((a, b) => Number(a.gini_coefficient || 0) - Number(b.gini_coefficient || 0))[0];
-      root.innerHTML = `
-        <div class="analytics-spotlight-card">
-          <div class="analytics-spotlight-kicker">Best Batter</div>
-          <button type="button" class="analytics-spotlight-name" data-player-id="${bestIndex.player_id}" data-stat-type="batting">${escapeHtml(bestIndex.player_name)}</button>
-          <div class="analytics-spotlight-value">${fmt(bestIndex.batting_index, 4)}</div>
-        </div>
-        <div class="analytics-spotlight-card">
-          <div class="analytics-spotlight-kicker">Most Consistent</div>
-          <button type="button" class="analytics-spotlight-name" data-player-id="${bestConsistency.player_id}" data-stat-type="batting">${escapeHtml(bestConsistency.player_name)}</button>
-          <div class="analytics-spotlight-value">${fmt(bestConsistency.gini_coefficient, 4)} Gini</div>
-        </div>
-      `;
-    }
-
-    function renderBowlingSpotlight(players) {
-      const root = document.getElementById("bowling-spotlight");
-      if (!players.length) {
-        root.innerHTML = "";
-        return;
-      }
-      const bestIndex = [...players].sort((a, b) => Number(b.bowling_index || 0) - Number(a.bowling_index || 0))[0];
-      const bestControl = [...players].sort((a, b) => Number(a.entropy || 0) - Number(b.entropy || 0))[0];
-      root.innerHTML = `
-        <div class="analytics-spotlight-card">
-          <div class="analytics-spotlight-kicker">Best Bowler</div>
-          <button type="button" class="analytics-spotlight-name" data-player-id="${bestIndex.player_id}" data-stat-type="bowling">${escapeHtml(bestIndex.player_name)}</button>
-          <div class="analytics-spotlight-value">${fmt(bestIndex.bowling_index, 4)}</div>
-        </div>
-        <div class="analytics-spotlight-card">
-          <div class="analytics-spotlight-kicker">Best Control</div>
-          <button type="button" class="analytics-spotlight-name" data-player-id="${bestControl.player_id}" data-stat-type="bowling">${escapeHtml(bestControl.player_name)}</button>
-          <div class="analytics-spotlight-value">${fmt(bestControl.entropy, 4)} H</div>
-        </div>
-      `;
-    }
-
-    function renderBattingCards(data) {
-      const root = document.getElementById("batting-cards");
-      const players = [...data.team_1.selected_xi, ...data.team_2.selected_xi]
-        .filter((player) => ["batsman", "wicket-keeper", "all-rounder"].includes(player.role));
-      if (!players.length) {
-        document.getElementById("batting-spotlight").innerHTML = "";
-        root.innerHTML = "";
-        return;
-      }
-      renderBattingSpotlight(players);
-      const giniTrend = players.map((player) => player.gini_coefficient);
-      const indexTrend = players.map((player) => player.batting_index);
-      root.innerHTML = players.map((player) => `
-        <button type="button" class="analytics-person-card analytics-click-card" data-player-id="${player.player_id}" data-stat-type="batting">
-          <div class="analytics-person-top">
-            <div>
-              <div class="analytics-person-name">${escapeHtml(player.player_name)}</div>
-              <div class="analytics-person-sub">${escapeHtml(player.role)} · ${player.career_runs} career runs</div>
-            </div>
-            <span class="analytics-pill ${consistencyTone(player.consistency_label)}">${escapeHtml(player.consistency_label)}</span>
-          </div>
-          <div class="analytics-metric-grid">
-            <div><span>Batting Index</span><strong>${fmt(player.batting_index, 4)}</strong></div>
-            <div><span>Gini</span><strong>${fmt(player.gini_coefficient, 4)}</strong></div>
-            <div><span>Selection</span><strong>${fmt(player.selection_score, 4)}</strong></div>
-            <div><span>Role</span><strong>${escapeHtml(player.role)}</strong></div>
-          </div>
-          <div class="analytics-bar-wrap">
-            <div class="analytics-bar-label">
-              <span>Consistency</span>
-              <strong>${Math.max(0, 100 - Number(player.gini_coefficient || 0) * 100).toFixed(1)}%</strong>
-            </div>
-            <div class="analytics-bar"><span style="width:${Math.max(6, 100 - Number(player.gini_coefficient || 0) * 100)}%"></span></div>
-          </div>
-          <div class="analytics-trend-row">
-            <div class="analytics-trend-card">
-              <div class="analytics-trend-label">Gini Field</div>
-              ${sparkBars(giniTrend, true)}
-            </div>
-            <div class="analytics-trend-card">
-              <div class="analytics-trend-label">Index Ladder</div>
-              ${sparkBars(indexTrend)}
-            </div>
-          </div>
-        </button>
-      `).join("");
-    }
-
-    function renderBowlingCards(data) {
-      const root = document.getElementById("bowling-cards");
-      const players = [...data.team_1.selected_xi, ...data.team_2.selected_xi]
-        .filter((player) => ["bowler", "all-rounder"].includes(player.role));
-      if (!players.length) {
-        document.getElementById("bowling-spotlight").innerHTML = "";
-        root.innerHTML = "";
-        return;
-      }
-      renderBowlingSpotlight(players);
-      const entropyTrend = players.map((player) => player.entropy);
-      const indexTrend = players.map((player) => player.bowling_index);
-      root.innerHTML = players.map((player) => `
-        <button type="button" class="analytics-person-card analytics-click-card" data-player-id="${player.player_id}" data-stat-type="bowling">
-          <div class="analytics-person-top">
-            <div>
-              <div class="analytics-person-name">${escapeHtml(player.player_name)}</div>
-              <div class="analytics-person-sub">${escapeHtml(player.role)} · ${player.career_wickets} career wickets</div>
-            </div>
-            <span class="analytics-pill ${entropyTone(player.entropy)}">Entropy ${fmt(player.entropy, 4)}</span>
-          </div>
-          <div class="analytics-metric-grid">
-            <div><span>Bowling Index</span><strong>${fmt(player.bowling_index, 4)}</strong></div>
-            <div><span>Economy</span><strong>${fmt(player.economy_rate, 2)}</strong></div>
-            <div><span>Entropy</span><strong>${fmt(player.entropy, 4)}</strong></div>
-            <div><span>Selection</span><strong>${fmt(player.selection_score, 4)}</strong></div>
-          </div>
-          <div class="analytics-trend-row">
-            <div class="analytics-trend-card">
-              <div class="analytics-trend-label">Control Field</div>
-              ${sparkBars(entropyTrend, true)}
-            </div>
-            <div class="analytics-trend-card">
-              <div class="analytics-trend-label">Index Ladder</div>
-              ${sparkBars(indexTrend)}
-            </div>
-          </div>
-        </button>
-      `).join("");
-    }
-
-    function renderCareerCard(statType, stats) {
-      const root = document.getElementById("career-card");
-      const hero = document.getElementById("career-hero");
-      const isBatting = statType === "batting";
-      hero.innerHTML = isBatting ? `
-        <div class="analytics-career-banner batting">
+      </div>
+      <div class="an-panel-body">
+        <div class="chart-2col" style="margin-bottom:14px;">
           <div>
-            <div class="analytics-career-label">Career Read</div>
-            <div class="analytics-career-title">Batting Consistency Profile</div>
+            <div class="chart-label">Batting Contributions</div>
+            <div class="chart-img-wrap"><img src="data:image/png;base64,${inn.batting}" alt="Batting"></div>
           </div>
-          <div class="analytics-career-score">${fmt(stats.batting_index, 4)}</div>
-        </div>
-      ` : `
-        <div class="analytics-career-banner bowling">
           <div>
-            <div class="analytics-career-label">Career Read</div>
-            <div class="analytics-career-title">Bowling Control Profile</div>
+            <div class="chart-label">Bowling Figures</div>
+            <div class="chart-img-wrap"><img src="data:image/png;base64,${inn.bowling}" alt="Bowling"></div>
           </div>
-          <div class="analytics-career-score">${fmt(stats.bowling_index, 4)}</div>
         </div>
-      `;
-      if (isBatting) {
-        root.innerHTML = `
-          <div class="analytics-career-grid">
-            <div><span>Total Runs</span><strong>${stats.total_runs ?? "-"}</strong></div>
-            <div><span>Innings</span><strong>${stats.innings_played ?? "-"}</strong></div>
-            <div><span>Average</span><strong>${fmt(stats.average)}</strong></div>
-            <div><span>Strike Rate</span><strong>${fmt(stats.strike_rate)}</strong></div>
-            <div><span>Gini</span><strong>${fmt(stats.gini_coefficient, 4)}</strong></div>
-            <div><span>Consistency</span><strong>${escapeHtml(stats.consistency_label || "-")}</strong></div>
-            <div><span>Boundary %</span><strong>${fmt(Number(stats.boundary_pct || 0) * 100)}%</strong></div>
-            <div><span>Batting Index</span><strong>${fmt(stats.batting_index, 4)}</strong></div>
-          </div>
-        `;
-      } else {
-        root.innerHTML = `
-          <div class="analytics-career-grid">
-            <div><span>Balls</span><strong>${stats.balls_bowled ?? "-"}</strong></div>
-            <div><span>Wickets</span><strong>${stats.wickets ?? "-"}</strong></div>
-            <div><span>Economy</span><strong>${fmt(stats.economy_rate)}</strong></div>
-            <div><span>Average</span><strong>${stats.bowling_average == null ? "-" : fmt(stats.bowling_average)}</strong></div>
-            <div><span>Dot %</span><strong>${fmt(Number(stats.dot_pct || 0) * 100)}%</strong></div>
-            <div><span>Entropy</span><strong>${fmt(stats.shannon_entropy, 4)}</strong></div>
-            <div><span>Overs</span><strong>${fmt(stats.overs_bowled, 1)}</strong></div>
-            <div><span>Bowling Index</span><strong>${fmt(stats.bowling_index, 4)}</strong></div>
-          </div>
-        `;
-      }
-    }
+        <div style="max-width:340px;">
+          <div class="chart-label">Ball Type Breakdown</div>
+          <div class="chart-img-wrap"><img src="data:image/png;base64,${inn.boundary_donut}" alt="Boundary donut"></div>
+        </div>
+      </div>
+    </div>
+    `;
+  });
 
-    document.getElementById("preview-load-btn").addEventListener("click", async () => {
-      const matchId = document.getElementById("preview-match").value;
-      if (!matchId) {
-        setStatus("preview-status", "Select a match first.", "error");
-        return;
-      }
-      setStatus("preview-status", "Building pre-match preview...");
-      try {
-        const data = await getJson("/api/v1/analytics/select-xi", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ match_id: Number(matchId) })
-        });
-        renderMatchupBoard(data);
-        renderAspectCards(data.comparison || []);
-        renderTeamSheets(data);
-        renderBattingCards(data);
-        renderBowlingCards(data);
-        setStatus("preview-status", `${data.team_1.team_name} vs ${data.team_2.team_name} preview loaded.`, "success");
-        setStatus("batting-status", "Career batting consistency loaded for selected XI players.", "success");
-        setStatus("bowling-status", "Career bowling interpretation loaded for selected XI players.", "success");
-      } catch (error) {
-        document.getElementById("matchup-board").innerHTML = "";
-        document.getElementById("aspect-grid").innerHTML = "";
-        document.getElementById("xi-team-grid").innerHTML = "";
-        document.getElementById("batting-spotlight").innerHTML = "";
-        document.getElementById("batting-cards").innerHTML = "";
-        document.getElementById("bowling-spotlight").innerHTML = "";
-        document.getElementById("bowling-cards").innerHTML = "";
-        setStatus("preview-status", error.message, "error");
-      }
+  area.innerHTML = html;
+}
+
+// ── XI Selection ──────────────────────────────────────────────
+document.getElementById('preview-load-btn').addEventListener('click', async()=>{
+  const matchId = document.getElementById('preview-match').value;
+  if (!matchId) { setStatus('preview-status','Select a match first.','error'); return; }
+  setStatus('preview-status','Building preview…');
+  try {
+    const data = await fetchJSON('/api/v1/analytics/select-xi',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({match_id:Number(matchId)}),
     });
+    renderMatchupBoard(data);
+    renderAspectCards(data.comparison||[]);
+    renderTeamSheets(data);
+    setStatus('preview-status',`${data.team_1.team_name} vs ${data.team_2.team_name} loaded.`,'success');
+  } catch(e) {
+    ['matchup-board','aspect-grid','xi-team-grid'].forEach(id=>document.getElementById(id).innerHTML='');
+    setStatus('preview-status',e.message,'error');
+  }
+});
 
-    document.getElementById("career-load-btn").addEventListener("click", async () => {
-      const playerId = document.getElementById("career-player").value;
-      const statType = document.getElementById("career-stat-type").value;
-      if (!playerId) {
-        setStatus("career-status", "Select a player first.", "error");
-        return;
-      }
-      setStatus("career-status", "Loading career analytics...");
-      try {
-        const data = await getJson(`/api/v1/analytics/player/${playerId}/career?stat_type=${encodeURIComponent(statType)}`);
-        renderCareerCard(statType, data.stats || {});
-        setStatus("career-status", `${statType[0].toUpperCase() + statType.slice(1)} career profile loaded.`, "success");
-      } catch (error) {
-        document.getElementById("career-hero").innerHTML = "";
-        document.getElementById("career-card").innerHTML = "";
-        setStatus("career-status", error.message, "error");
-      }
-    });
+function setStatus(id,msg,tone=''){
+  const el=document.getElementById(id);
+  el.className=`analytics-status ${tone}`.trim();
+  el.textContent=msg;
+}
+function renderMatchupBoard(data){
+  const t1=data.team_1,t2=data.team_2,w1=data.win_probability.team_1.chance,w2=data.win_probability.team_2.chance;
+  document.getElementById('matchup-board').innerHTML=`
+    <div class="analytics-scoreboard">
+      <div class="analytics-scoreboard-team"><div class="analytics-scoreboard-name">${esc(t1.team_name)}</div><div class="analytics-scoreboard-chance">${fmt(w1,1)}%</div></div>
+      <div class="analytics-scoreboard-mid">
+        <div class="analytics-scoreboard-kicker">Projected Winner</div>
+        <div class="analytics-scoreboard-favored">${esc(data.win_probability.favored_team)}</div>
+        <div class="analytics-winbar"><span class="team-a" style="width:${Math.max(w1,6)}%"></span><span class="team-b" style="width:${Math.max(w2,6)}%"></span></div>
+      </div>
+      <div class="analytics-scoreboard-team right"><div class="analytics-scoreboard-name">${esc(t2.team_name)}</div><div class="analytics-scoreboard-chance">${fmt(w2,1)}%</div></div>
+    </div>`;
+}
+function renderAspectCards(comparison){
+  document.getElementById('aspect-grid').innerHTML=comparison.map(item=>`
+    <div class="analytics-overview-card">
+      <span>${esc(item.label)}</span>
+      <strong>${esc(item.edge)}</strong>
+      <div class="analytics-overview-sub">${fmt(item.team_1_value,3)} vs ${fmt(item.team_2_value,3)}</div>
+    </div>`).join('');
+}
+function renderTeamSheets(data){
+  document.getElementById('xi-team-grid').innerHTML=[data.team_1,data.team_2].map(team=>`
+    <div class="analytics-team-card">
+      <div class="analytics-team-card-head">
+        <div class="analytics-team-card-name">${esc(team.team_name)}</div>
+        <div class="analytics-team-card-sub">Overall ${fmt(team.strengths.overall,4)}</div>
+      </div>
+      <div class="analytics-xi-grid team-mode">
+        ${team.selected_xi.map((p,i)=>`
+          <div class="analytics-xi-slot">
+            <div class="analytics-xi-rank">${i+1}</div>
+            <div class="analytics-xi-name">${esc(p.player_name)}</div>
+            <div class="analytics-xi-role">${esc(p.role)}</div>
+            <div class="analytics-xi-score">Sel ${fmt(p.selection_score,4)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
 
-    document.getElementById("career-player").addEventListener("change", inferCareerModeFromRole);
+// ── Utility ───────────────────────────────────────────────────
+async function fetchJSON(url,opts={}){
+  const res = await fetch(url,opts);
+  const d   = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(d.error||d.detail||`HTTP ${res.status}`);
+  return d;
+}
 
-    document.addEventListener("click", (event) => {
-      const trigger = event.target.closest(".analytics-click-card, .analytics-spotlight-name");
-      if (!trigger) {
-        return;
-      }
-      const playerId = trigger.getAttribute("data-player-id");
-      const statType = trigger.getAttribute("data-stat-type") || "batting";
-      if (!playerId) {
-        return;
-      }
-      setCareerSelection(playerId, statType);
-      document.getElementById("career-player").scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  })();
+})();
 </script>
 {% endblock %}

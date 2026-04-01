@@ -3,71 +3,320 @@
 {% block title %}{{ team.name }} - Team Profile{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    
-    <!-- Back Button -->
-    <a href="/teams" class="text-blue-600 hover:text-blue-700 flex items-center">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-        </svg>
-        Back to Teams
-    </a>
-    
-    <!-- Team Header -->
-    <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-8 text-white">
-        <div class="flex items-center space-x-6">
-            <!-- Team Logo -->
-            <div class="w-24 h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-3xl font-bold">
-                {{ team.short_name }}
-            </div>
-            
-            <!-- Team Info -->
-            <div class="flex-1">
-                <h1 class="text-4xl font-bold mb-2">{{ team.name }}</h1>
-                <div class="flex items-center space-x-4 text-sm">
-                    {% if team.home_ground %}
-                    <span>🏟️ {{ team.home_ground }}</span>
-                    {% endif %}
-                    <span>•</span>
-                    <span>👥 {{ players|length }} Players</span>
-                </div>
-            </div>
+<style>
+.td-shell { display:flex; flex-direction:column; gap:22px; }
+
+.td-back {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:var(--accent-orange);
+  text-decoration:none;
+  font-family:var(--condensed-font);
+  font-size:12px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.td-back:hover { color:var(--accent-gold); }
+
+.td-hero {
+  padding:32px 36px;
+  border-radius:26px;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,.12), transparent 30%),
+    linear-gradient(135deg, #6e2a1c, #c4692a 55%, #e0a328 100%);
+  color:#fff9ef;
+  box-shadow:0 20px 48px rgba(95,44,20,.2);
+}
+.td-hero-inner { display:flex; align-items:center; gap:24px; }
+.td-crest {
+  width:96px;
+  height:96px;
+  border-radius:28px;
+  background:rgba(255,255,255,.14);
+  border:1.5px solid rgba(255,255,255,.24);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:var(--display-font);
+  font-size:34px;
+  font-weight:700;
+  letter-spacing:.08em;
+  flex-shrink:0;
+}
+.td-hero-name { font-size:42px; color:#fffdf7; line-height:1.02; }
+.td-hero-meta {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:12px;
+}
+.td-hero-meta span {
+  padding:6px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.12);
+  color:rgba(255,242,220,.9);
+  font-size:12px;
+  letter-spacing:.04em;
+}
+.td-hero-stats {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:22px;
+}
+.td-hero-stat {
+  padding:14px 16px;
+  border-radius:18px;
+  background:rgba(30,12,4,.22);
+}
+.td-hero-stat span {
+  display:block;
+  font-size:10px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:rgba(255,235,200,.65);
+}
+.td-hero-stat strong {
+  display:block;
+  margin-top:6px;
+  font-family:var(--score-font);
+  font-size:26px;
+  color:#fff9ef;
+}
+
+.td-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:18px; }
+.td-panel {
+  background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,240,229,.98));
+  border:1px solid var(--border);
+  border-radius:20px;
+  box-shadow:var(--shadow-card);
+  overflow:hidden;
+}
+.td-panel-head {
+  padding:20px 22px 0;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.td-panel-head h2 { font-size:22px; }
+.td-panel-body { padding:16px 22px 22px; }
+
+.td-role-block + .td-role-block {
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid rgba(201,151,45,.18);
+}
+.td-role-title {
+  font-family:var(--condensed-font);
+  font-size:14px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--accent-orange);
+  margin-bottom:12px;
+}
+.td-player-grid {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+.td-player-card {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  border-radius:16px;
+  text-decoration:none;
+  background:rgba(255,248,237,.92);
+  border:1px solid rgba(219,202,179,.8);
+  transition:var(--transition);
+}
+.td-player-card:hover {
+  background:var(--bg-card-hover);
+  border-color:var(--border-bright);
+  transform:translateY(-2px);
+}
+.td-player-badge {
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  background:linear-gradient(135deg, #764720, #c88f2c);
+  color:#fff8ed;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:var(--score-font);
+  font-size:18px;
+  flex-shrink:0;
+}
+.td-player-name {
+  font-size:17px;
+  font-weight:700;
+  color:var(--text-primary);
+}
+.td-player-meta {
+  margin-top:2px;
+  font-size:13px;
+  color:var(--text-muted);
+}
+.td-player-arrow {
+  margin-left:auto;
+  color:var(--accent-orange);
+  font-size:18px;
+}
+
+.td-match-list {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.td-match-card {
+  padding:14px 16px;
+  border-radius:16px;
+  background:rgba(255,248,237,.88);
+  border:1px solid rgba(219,202,179,.78);
+}
+.td-match-date {
+  font-family:var(--condensed-font);
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--accent-orange);
+}
+.td-match-teams {
+  margin-top:6px;
+  font-size:16px;
+  font-weight:700;
+  color:var(--text-primary);
+}
+.td-match-meta {
+  margin-top:6px;
+  font-size:13px;
+  color:var(--text-muted);
+  line-height:1.5;
+}
+.td-empty {
+  padding:28px 18px;
+  border-radius:16px;
+  text-align:center;
+  background:rgba(255,248,237,.76);
+  color:var(--text-muted);
+}
+
+@media (max-width: 920px) {
+  .td-grid { grid-template-columns:1fr; }
+}
+
+@media (max-width: 720px) {
+  .td-hero { padding:24px; }
+  .td-hero-inner { flex-direction:column; align-items:flex-start; }
+  .td-hero-name { font-size:34px; }
+  .td-hero-stats { grid-template-columns:1fr; }
+  .td-player-grid { grid-template-columns:1fr; }
+}
+</style>
+
+<div class="td-shell">
+  <a href="/teams" class="td-back">&larr; Back to Teams</a>
+
+  <section class="td-hero animate-in">
+    <div class="td-hero-inner">
+      <div class="td-crest">{{ team.short_name[:3] | upper }}</div>
+
+      <div style="flex:1;">
+        <h1 class="td-hero-name">{{ team.name }}</h1>
+        <div class="td-hero-meta">
+          <span>{{ team.short_name }}</span>
+          {% if team.home_ground %}
+          <span>{{ team.home_ground }}</span>
+          {% endif %}
+          <span>{{ players|length }} Players</span>
         </div>
+
+        <div class="td-hero-stats">
+          <div class="td-hero-stat">
+            <span>Squad Size</span>
+            <strong>{{ players|length }}</strong>
+          </div>
+          <div class="td-hero-stat">
+            <span>Roles Covered</span>
+            <strong>{{ players_by_role|length }}</strong>
+          </div>
+          <div class="td-hero-stat">
+            <span>Matches Logged</span>
+            <strong>{{ matches|length }}</strong>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <!-- Team Squad -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-6">Team Squad</h2>
-        
-        <!-- Players by Role -->
+  </section>
+
+  <div class="td-grid">
+    <section class="td-panel animate-in delay-1">
+      <div class="td-panel-head">
+        <div>
+          <div class="section-label">Squad</div>
+          <h2>Team Lineup</h2>
+        </div>
+      </div>
+      <div class="td-panel-body">
         {% for role, role_players in players_by_role.items() %}
-        <div class="mb-8">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">{{ role.title() }}s</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for player in role_players %}
-                <a href="/player/{{ player.id }}" class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {{ player.jersey_number or '?' }}
-                    </div>
-                    <div class="flex-1">
-                        <p class="font-semibold text-gray-800">{{ player.name }}</p>
-                        <p class="text-sm text-gray-500">{{ player.batting_style }}</p>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </a>
-                {% endfor %}
-            </div>
+        <div class="td-role-block">
+          <div class="td-role-title">{{ role.title() }}{% if role_players|length != 1 %}s{% endif %}</div>
+          <div class="td-player-grid">
+            {% for player in role_players %}
+            <a href="/player/{{ player.id }}" class="td-player-card">
+              <div class="td-player-badge">#{{ player.jersey_number or '?' }}</div>
+              <div>
+                <div class="td-player-name">{{ player.name }}</div>
+                <div class="td-player-meta">
+                  {{ player.batting_style or 'Style not listed' }}
+                  {% if player.bowling_style %} | {{ player.bowling_style }}{% endif %}
+                </div>
+              </div>
+              <div class="td-player-arrow">&rsaquo;</div>
+            </a>
+            {% endfor %}
+          </div>
         </div>
+        {% else %}
+        <div class="td-empty">No players have been added to this team yet.</div>
         {% endfor %}
-    </div>
-    
-    <!-- Recent Matches -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Matches</h2>
-        <p class="text-gray-500 text-center py-8">Match history coming soon!</p>
-    </div>
-    
+      </div>
+    </section>
+
+    <section class="td-panel animate-in delay-2">
+      <div class="td-panel-head">
+        <div>
+          <div class="section-label">Matches</div>
+          <h2>Recent Activity</h2>
+        </div>
+      </div>
+      <div class="td-panel-body">
+        {% if matches %}
+        <div class="td-match-list">
+          {% for match in matches[:5] %}
+          <div class="td-match-card">
+            <div class="td-match-date">{{ match.match_date.strftime('%d %b %Y') if match.match_date else 'Date TBD' }}</div>
+            <div class="td-match-teams">
+              {{ match.team1.name if match.team1 else 'Team ' ~ match.team_1_id }}
+              vs
+              {{ match.team2.name if match.team2 else 'Team ' ~ match.team_2_id }}
+            </div>
+            <div class="td-match-meta">
+              Status: {{ match.status|replace('_', ' ')|title if match.status else 'Scheduled' }}
+              {% if match.match_type %}<br>Format: {{ match.match_type|upper }}{% endif %}
+              {% if match.winner_team %}<br>Winner: {{ match.winner_team.name }}{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="td-empty">No match history is available for this team yet.</div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
 </div>
 {% endblock %}

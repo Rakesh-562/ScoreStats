@@ -37,9 +37,9 @@
   </div>
 </div>
 
-<div class="card mb-8">
+<div class="card mb-8" id="create-live-match">
   <div class="card-header">
-    <h3>Create Live Match</h3>
+    <h3>Add Match</h3>
   </div>
   <div class="card-body">
     <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
@@ -60,9 +60,68 @@
         <option value="test">Test</option>
       </select>
       <select id="new-batting-first" class="border rounded px-3 py-2 bg-white"></select>
-      <button id="create-live-match-btn" class="btn btn-primary">Create Live</button>
+      <button id="create-live-match-btn" class="btn btn-primary">Add Match</button>
     </div>
     <p class="text-sm mt-2" id="create-live-msg" style="color:var(--text-muted);"></p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+  <div class="card" id="team-admin-panel">
+    <div class="card-header">
+      <h3>Add Team</h3>
+    </div>
+    <div class="card-body">
+      <div class="grid grid-cols-1 gap-3">
+        <input id="team-name" type="text" class="border rounded px-3 py-2 bg-white" placeholder="Team name" />
+        <input id="team-short-name" type="text" maxlength="10" class="border rounded px-3 py-2 bg-white" placeholder="Short name (uppercase)" />
+        <input id="team-logo-url" type="url" class="border rounded px-3 py-2 bg-white" placeholder="Logo URL (optional)" />
+        <button id="create-team-btn" class="btn btn-primary">Add Team</button>
+      </div>
+      <p class="text-sm mt-2" id="create-team-msg" style="color:var(--text-muted);"></p>
+    </div>
+  </div>
+
+  <div class="card" id="player-admin-panel">
+    <div class="card-header">
+      <h3>Add Player</h3>
+    </div>
+    <div class="card-body">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input id="player-name" type="text" class="border rounded px-3 py-2 bg-white" placeholder="Player name" />
+        <select id="player-team-id" class="border rounded px-3 py-2 bg-white">
+          <option value="">Select team</option>
+          {% for team in teams %}
+          <option value="{{ team.id }}">{{ team.name }} ({{ team.short_name }})</option>
+          {% endfor %}
+        </select>
+        <select id="player-role" class="border rounded px-3 py-2 bg-white">
+          <option value="">Select role</option>
+          <option value="batsman">Batsman</option>
+          <option value="bowler">Bowler</option>
+          <option value="all-rounder">All-Rounder</option>
+          <option value="wicket-keeper">Wicket-Keeper</option>
+        </select>
+        <input id="player-jersey-number" type="number" min="0" class="border rounded px-3 py-2 bg-white" placeholder="Jersey number" />
+        <select id="player-batting-style" class="border rounded px-3 py-2 bg-white">
+          <option value="">Batting style</option>
+          <option value="right-hand">Right-hand</option>
+          <option value="left-hand">Left-hand</option>
+        </select>
+        <select id="player-bowling-style" class="border rounded px-3 py-2 bg-white">
+          <option value="">Bowling style</option>
+          <option value="fast">Fast</option>
+          <option value="medium">Medium</option>
+          <option value="spin">Spin</option>
+          <option value="leg-spin">Leg-spin</option>
+          <option value="off-spin">Off-spin</option>
+        </select>
+      </div>
+      <div style="margin-top:12px;">
+        <button id="create-player-btn" class="btn btn-primary">Add Player</button>
+      </div>
+      <p class="text-sm mt-2" id="create-player-msg" style="color:var(--text-muted);"></p>
+    </div>
   </div>
 </div>
 
@@ -224,10 +283,37 @@
     const battingFirstEl = document.getElementById("new-batting-first");
     const createBtn = document.getElementById("create-live-match-btn");
     const msgEl = document.getElementById("create-live-msg");
+    const createTeamBtn = document.getElementById("create-team-btn");
+    const createTeamMsgEl = document.getElementById("create-team-msg");
+    const createPlayerBtn = document.getElementById("create-player-btn");
+    const createPlayerMsgEl = document.getElementById("create-player-msg");
+    const teamNameEl = document.getElementById("team-name");
+    const teamShortNameEl = document.getElementById("team-short-name");
+    const teamLogoUrlEl = document.getElementById("team-logo-url");
+    const playerNameEl = document.getElementById("player-name");
+    const playerTeamIdEl = document.getElementById("player-team-id");
+    const playerRoleEl = document.getElementById("player-role");
+    const playerJerseyNumberEl = document.getElementById("player-jersey-number");
+    const playerBattingStyleEl = document.getElementById("player-batting-style");
+    const playerBowlingStyleEl = document.getElementById("player-bowling-style");
 
     function setMsg(text, isErr) {
       msgEl.textContent = text || "";
       msgEl.style.color = isErr ? "#d14343" : "var(--text-muted)";
+    }
+
+    function setInlineMsg(el, text, isErr) {
+      el.textContent = text || "";
+      el.style.color = isErr ? "#d14343" : "var(--text-muted)";
+    }
+
+    function readError(payload) {
+      if (!payload) return "unknown error";
+      if (typeof payload.error === "string") return payload.error;
+      if (typeof payload.message === "string") return payload.message;
+      if (typeof payload["error message"] === "string") return payload["error message"];
+      if (payload.errors) return Object.values(payload.errors).flat().join(" ");
+      return "unknown error";
     }
 
     function refreshBattingOptions() {
@@ -235,13 +321,15 @@
       const t2 = team2El.value;
       battingFirstEl.innerHTML = "";
       if (!t1 || !t2 || t1 === t2) return;
+      const team1Label = team1El.options[team1El.selectedIndex]?.textContent || "Team 1";
+      const team2Label = team2El.options[team2El.selectedIndex]?.textContent || "Team 2";
       const o1 = document.createElement("option");
       o1.value = t1;
-      o1.textContent = "Bat First: Team 1";
+      o1.textContent = `Bat First: ${team1Label}`;
       battingFirstEl.appendChild(o1);
       const o2 = document.createElement("option");
       o2.value = t2;
-      o2.textContent = "Bat First: Team 2";
+      o2.textContent = `Bat First: ${team2Label}`;
       battingFirstEl.appendChild(o2);
     }
 
@@ -277,7 +365,7 @@
         });
         const createData = await createRes.json();
         if (!createRes.ok || !createData.success) {
-          setMsg("Create failed: " + (createData.error || "unknown error"), true);
+          setMsg("Create failed: " + readError(createData), true);
           return;
         }
         const matchId = createData.match.id;
@@ -294,7 +382,7 @@
         });
         const startData = await startRes.json();
         if (!startRes.ok || !startData.success) {
-          setMsg("Match created but innings start failed: " + (startData.error || "unknown error"), true);
+          setMsg("Match created but innings start failed: " + readError(startData), true);
           return;
         }
 
@@ -307,9 +395,113 @@
       }
     }
 
+    async function createTeam() {
+      const name = (teamNameEl.value || "").trim();
+      const shortName = (teamShortNameEl.value || "").trim().toUpperCase();
+      const logoUrl = (teamLogoUrlEl.value || "").trim();
+
+      if (!name || name.length < 3) {
+        setInlineMsg(createTeamMsgEl, "Team name must have at least 3 characters.", true);
+        return;
+      }
+      if (!shortName) {
+        setInlineMsg(createTeamMsgEl, "Short name is required.", true);
+        return;
+      }
+
+      createTeamBtn.disabled = true;
+      setInlineMsg(createTeamMsgEl, "Adding team to cricket DB...", false);
+
+      try {
+        const payload = { name, short_name: shortName };
+        if (logoUrl) payload.logo_url = logoUrl;
+
+        const response = await fetch("/api/v1/teams", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          setInlineMsg(createTeamMsgEl, "Add team failed: " + readError(data), true);
+          return;
+        }
+
+        setInlineMsg(createTeamMsgEl, "Team added successfully. Refreshing...", false);
+        window.location.reload();
+      } catch (err) {
+        setInlineMsg(createTeamMsgEl, "Request failed: " + err.message, true);
+      } finally {
+        createTeamBtn.disabled = false;
+      }
+    }
+
+    async function createPlayer() {
+      const name = (playerNameEl.value || "").trim();
+      const teamId = Number(playerTeamIdEl.value || 0);
+      const role = playerRoleEl.value || "";
+      const jerseyNumber = playerJerseyNumberEl.value === "" ? null : Number(playerJerseyNumberEl.value);
+      const battingStyle = playerBattingStyleEl.value || "";
+      const bowlingStyle = playerBowlingStyleEl.value || "";
+
+      if (!name || name.length < 2) {
+        setInlineMsg(createPlayerMsgEl, "Player name must have at least 2 characters.", true);
+        return;
+      }
+      if (!teamId) {
+        setInlineMsg(createPlayerMsgEl, "Select a team.", true);
+        return;
+      }
+      if (!role) {
+        setInlineMsg(createPlayerMsgEl, "Role is required to save the player.", true);
+        return;
+      }
+      if (jerseyNumber === null || Number.isNaN(jerseyNumber) || jerseyNumber < 0) {
+        setInlineMsg(createPlayerMsgEl, "Enter a valid jersey number.", true);
+        return;
+      }
+
+      createPlayerBtn.disabled = true;
+      setInlineMsg(createPlayerMsgEl, "Adding player to cricket DB...", false);
+
+      try {
+        const payload = {
+          name,
+          team_id: teamId,
+          role,
+          jersey_number: jerseyNumber
+        };
+        if (battingStyle) payload.batting_style = battingStyle;
+        if (bowlingStyle) payload.bowling_style = bowlingStyle;
+
+        const response = await fetch("/api/v1/players", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          setInlineMsg(createPlayerMsgEl, "Add player failed: " + readError(data), true);
+          return;
+        }
+
+        setInlineMsg(createPlayerMsgEl, "Player added successfully. Refreshing...", false);
+        window.location.reload();
+      } catch (err) {
+        setInlineMsg(createPlayerMsgEl, "Request failed: " + err.message, true);
+      } finally {
+        createPlayerBtn.disabled = false;
+      }
+    }
+
     team1El.addEventListener("change", refreshBattingOptions);
     team2El.addEventListener("change", refreshBattingOptions);
     createBtn.addEventListener("click", createLiveMatch);
+    createTeamBtn.addEventListener("click", createTeam);
+    createPlayerBtn.addEventListener("click", createPlayer);
+    teamShortNameEl.addEventListener("input", function () {
+      teamShortNameEl.value = teamShortNameEl.value.toUpperCase();
+    });
     refreshBattingOptions();
   })();
 </script>

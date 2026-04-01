@@ -229,7 +229,7 @@
           <td class="num">{{ row.balls }}</td>
           <td class="num">{{ row.fours }}</td>
           <td class="num">{{ row.sixes }}</td>
-          <td class="num">{{ row.strike_rate }}</td>
+          <td class="num">{{ '%.2f'|format(row.strike_rate|float) }}</td>
         </tr>
         {% else %}
         <tr>
@@ -306,6 +306,11 @@
       .replace(/'/g, '&#39;');
   }
 
+  function formatRate(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num.toFixed(2) : '0.00';
+  }
+
   function renderBattingRows(rows) {
     if (!battingBody1) return;
     if (!rows || !rows.length) {
@@ -326,7 +331,7 @@
           <td class="num">${escapeHtml(row.balls)}</td>
           <td class="num">${escapeHtml(row.fours)}</td>
           <td class="num">${escapeHtml(row.sixes)}</td>
-          <td class="num">${escapeHtml(row.strike_rate)}</td>
+          <td class="num">${escapeHtml(formatRate(row.strike_rate))}</td>
         </tr>
       `;
     }).join('');
