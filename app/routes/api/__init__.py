@@ -6,9 +6,11 @@ from .players import player_bp
 from .matches import matches_bp
 from .balls import balls_bp
 from .analytics import analytics_bp
+from .prediction import prediction_bp
  
 api_bp.register_blueprint(teams_bp,url_prefix='/teams')
 api_bp.register_blueprint(player_bp,url_prefix='/players')
 api_bp.register_blueprint(matches_bp,url_prefix='/matches')
 api_bp.register_blueprint(balls_bp,url_prefix='/balls')
 api_bp.register_blueprint(analytics_bp,url_prefix='/analytics')
+api_bp.register_blueprint(prediction_bp,url_prefix='/prediction')

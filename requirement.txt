@@ -8,3 +8,8 @@ PyJWT
 python-dotenv
 redis
 gunicorn 
+pandas
+matplotlib
+scikit-learn 
+pandas
+joblib

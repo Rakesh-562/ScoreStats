@@ -1,0 +1,39 @@
+{
+  "base_features": [
+    "runs_so_far",
+    "wickets_fallen",
+    "balls_bowled",
+    "balls_remaining",
+    "overs_completed",
+    "current_run_rate",
+    "striker_runs",
+    "striker_balls",
+    "striker_strike_rate",
+    "striker_fours",
+    "striker_sixes",
+    "bowler_economy",
+    "bowler_wickets",
+    "bowler_dots",
+    "over_limit"
+  ],
+  "win_features": [
+    "runs_so_far",
+    "wickets_fallen",
+    "balls_bowled",
+    "balls_remaining",
+    "overs_completed",
+    "current_run_rate",
+    "striker_runs",
+    "striker_balls",
+    "striker_strike_rate",
+    "striker_fours",
+    "striker_sixes",
+    "bowler_economy",
+    "bowler_wickets",
+    "bowler_dots",
+    "over_limit",
+    "required_run_rate",
+    "runs_to_target",
+    "target"
+  ]
+}

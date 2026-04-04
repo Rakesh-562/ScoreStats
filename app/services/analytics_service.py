@@ -1288,3 +1288,35 @@ class AnalyticsService:
 
         stats = cls._build_bowling_stats(player, balls)
         return compute_bowling_profile(stats)
+
+    @classmethod
+    def player_career_batting_safe(cls, player_id: int) -> BattingStats:
+        """
+        Like player_career_batting but falls back to an empty profile
+        instead of raising InsufficientDataError.  Used by the analytics
+        route so that the endpoint returns a result even for rookies.
+        """
+        try:
+            return cls.player_career_batting(player_id)
+        except (PlayerNotFoundError, InsufficientDataError):
+            from app.extensions import db
+            from app.models import Player
+            player = db.session.get(Player, player_id)
+            if player is None:
+                raise PlayerNotFoundError(f"Player player_id={player_id} not found.")
+            return cls._empty_batting_stats(player)
+ 
+    @classmethod
+    def player_career_bowling_safe(cls, player_id: int) -> BowlingStats:
+        """
+        Like player_career_bowling but falls back to an empty profile.
+        """
+        try:
+            return cls.player_career_bowling(player_id)
+        except (PlayerNotFoundError, InsufficientDataError):
+            from app.extensions import db
+            from app.models import Player
+            player = db.session.get(Player, player_id)
+            if player is None:
+                raise PlayerNotFoundError(f"Player player_id={player_id} not found.")
+            return cls._empty_bowling_stats(player)

@@ -18,6 +18,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request
 from marshmallow import ValidationError
+from app.services.prediction_service import predict_innings
 
 from app.services.analytics_service import (
     AnalyticsError,
@@ -290,7 +291,14 @@ def player_career(player_id: int):
         breakdown     = AnalyticsService._bowling_component_breakdown(profile)
     return jsonify({"player_id": player_id, "stat_type": stat_type,
                     "stats": stats_payload, "breakdown": breakdown}), HTTPStatus.OK
-
+@analytics_bp.get("/innings/<int:innings_id>/predict")
+def predict_innings_score(innings_id: int):
+    """
+    Predict projected final score and win probability for an active innings.
+    Called by the match frontend after every ball update.
+    """
+    result = predict_innings(innings_id)
+    return jsonify(result), HTTPStatus.OK
 
 # ---------------------------------------------------------------------------
 # New: raw innings-history

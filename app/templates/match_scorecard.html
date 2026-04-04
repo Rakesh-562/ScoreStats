@@ -101,6 +101,12 @@ match.team_2_id }} — {% if match.status == 'live' %}Live{% else %}Match{% endi
       🏆 {{ match.win_margin }}
     </span>
     {% endif %}
+    <span class="rate-chip" id="prediction-chip" style="display:none;">
+      Proj <strong id="proj-score-val">—</strong>
+      <span id="proj-conf"
+            style="font-size:10px;color:var(--text-muted);margin-left:4px;">
+      </span>
+    </span>
   </div>
 
 </div><!-- /scoreboard -->
@@ -569,9 +575,28 @@ match.team_2_id }} — {% if match.status == 'live' %}Live{% else %}Match{% endi
   });
 
   socket.on('score_update', (data) => {
-    console.log('[WS] Score updated:', data.total_runs, '/', data.total_wickets);
-    updateScore(data);
-  });
+  console.log('[WS] Score updated:', data.total_runs, '/', data.total_wickets);
+  updateScore(data);
+
+  // Fetch updated prediction after every ball
+  const inningsId = data.id || data.innings_id;
+  if (inningsId) {
+    fetch(`/api/v1/analytics/innings/${inningsId}/predict`)
+      .then(r => r.json())
+      .then(pred => {
+        const chip  = document.getElementById('prediction-chip');
+        const score = document.getElementById('proj-score-val');
+        const conf  = document.getElementById('proj-conf');
+        if (!chip || !pred.available) { if(chip) chip.style.display='none'; return; }
+        chip.style.display = '';
+        score.textContent  = `${pred.score_range_low}–${pred.score_range_high}`;
+        const colors = { high:'var(--accent-green)', medium:'var(--accent-gold)', low:'var(--accent-red)' };
+        conf.textContent  = pred.confidence;
+        conf.style.color  = colors[pred.confidence] || 'var(--text-muted)';
+      })
+      .catch(() => {});  // fail silently
+  }
+});
 
   socket.on('innings_complete', (data) => {
     appendBallRow({
