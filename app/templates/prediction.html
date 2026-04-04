@@ -1,17 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Match Prediction — ScoreStat{% endblock %}
+{% block title %}Match Prediction - ScoreStat{% endblock %}
 
 {% block content %}
 <div class="pred-shell">
-
-  <!-- ── Hero header ────────────────────────────────────────────── -->
   <section class="pred-hero animate-in">
     <div class="pred-hero-copy">
       <div class="pred-kicker">AI Powered Prediction</div>
       <h1 class="pred-title">Match Intelligence<br><span>Engine</span></h1>
       <p class="pred-subtitle">
-        RandomForest models trained on ball-by-ball history predict
-        innings totals and win probability. Best XI selected via TOPSIS.
+        Pick any two teams and get a pre-match projection built from recent scoring trends,
+        bowling control, squad balance, and head-to-head data.
       </p>
     </div>
     <div class="pred-hero-orbs">
@@ -21,41 +19,41 @@
         <div class="pred-badge-grid">
           <div><strong>RF</strong><span>Score Model</span></div>
           <div><strong>RF</strong><span>Win Classifier</span></div>
-          <div><strong>XI</strong><span>TOPSIS Select</span></div>
-          <div><strong>H2H</strong><span>Head to Head</span></div>
+          <div><strong>XI</strong><span>Team Strength</span></div>
+          <div><strong>H2H</strong><span>Context Check</span></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── Match selector card ────────────────────────────────────── -->
   <section class="pred-config-card animate-in delay-1">
     <div class="pred-config-head">
       <div>
         <div class="section-label">Configure Prediction</div>
-        <h2>Select Match &amp; Batting Order</h2>
+        <h2>Select Teams and Batting Order</h2>
       </div>
       <button id="train-btn" class="btn btn-outline" title="Retrain ML models from completed matches">
-        ↺ Retrain Models
+        Retrain Models
       </button>
     </div>
 
     <div class="pred-form-row">
       <label class="pred-field">
-        <span>Match</span>
-        <select id="pred-match" class="form-input">
-          <option value="">— choose a match —</option>
-          {% for match in matches %}
-          <option value="{{ match.id }}"
-            data-t1="{{ match.team_1_id }}"
-            data-t2="{{ match.team_2_id }}"
-            data-t1name="{{ match.team1.name if match.team1 else 'Team ' ~ match.team_1_id }}"
-            data-t2name="{{ match.team2.name if match.team2 else 'Team ' ~ match.team_2_id }}"
-            data-status="{{ match.status }}">
-            #{{ match.id }} — {{ match.team1.name if match.team1 else 'Team '~match.team_1_id }} vs
-            {{ match.team2.name if match.team2 else 'Team '~match.team_2_id }}
-            [{{ match.status|upper }}]
-          </option>
+        <span>Team 1</span>
+        <select id="pred-team-1" class="form-input">
+          <option value="">- choose first team -</option>
+          {% for team in teams %}
+          <option value="{{ team.id }}">{{ team.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="pred-field">
+        <span>Team 2</span>
+        <select id="pred-team-2" class="form-input">
+          <option value="">- choose second team -</option>
+          {% for team in teams %}
+          <option value="{{ team.id }}">{{ team.name }}</option>
           {% endfor %}
         </select>
       </label>
@@ -63,13 +61,13 @@
       <label class="pred-field pred-field-sm">
         <span>Batting First</span>
         <select id="batting-first" class="form-input">
-          <option value="">Auto (from toss)</option>
+          <option value="">Select teams first</option>
         </select>
       </label>
 
       <button id="predict-btn" class="btn btn-primary pred-go-btn">
         <span>Run Prediction</span>
-        <span class="pred-go-arrow">→</span>
+        <span class="pred-go-arrow">-></span>
       </button>
     </div>
 
@@ -77,16 +75,13 @@
     <div id="train-result" class="pred-train-result hidden"></div>
   </section>
 
-  <!-- ── Results (initially hidden) ────────────────────────────── -->
   <div id="pred-results" class="pred-results hidden">
-
-    <!-- Scoreboard -->
     <section class="pred-scoreboard animate-in">
       <div class="pred-scoreboard-inner">
-        <div class="pred-team-block" id="pb-team1">
-          <div class="pred-team-name" id="pb-t1-name">—</div>
+        <div class="pred-team-block">
+          <div class="pred-team-name" id="pb-t1-name">-</div>
           <div class="pred-team-score">
-            <span class="pred-score-main" id="pb-inn1-score">—</span>
+            <span class="pred-score-main" id="pb-inn1-score">-</span>
             <span class="pred-score-range" id="pb-inn1-range"></span>
           </div>
           <div class="pred-team-meta" id="pb-t1-meta">Innings 1</div>
@@ -97,66 +92,65 @@
           <div id="model-badge" class="pred-model-badge"></div>
         </div>
 
-        <div class="pred-team-block" id="pb-team2">
-          <div class="pred-team-name" id="pb-t2-name">—</div>
+        <div class="pred-team-block">
+          <div class="pred-team-name" id="pb-t2-name">-</div>
           <div class="pred-team-score">
-            <span class="pred-score-main" id="pb-inn2-score">—</span>
+            <span class="pred-score-main" id="pb-inn2-score">-</span>
             <span class="pred-score-range" id="pb-inn2-range"></span>
           </div>
           <div class="pred-team-meta" id="pb-t2-meta">Innings 2</div>
         </div>
       </div>
 
-      <!-- Win probability bar -->
       <div class="pred-win-bar-wrap">
         <div class="pred-win-labels">
-          <span id="wb-t1-name">—</span>
+          <span id="wb-t1-name">-</span>
           <span id="wb-winner-label" class="pred-winner-badge">Predicted Winner</span>
-          <span id="wb-t2-name">—</span>
+          <span id="wb-t2-name">-</span>
         </div>
         <div class="pred-win-bar">
           <div class="pred-win-fill-a" id="wb-fill-a" style="width:50%"></div>
           <div class="pred-win-fill-b" id="wb-fill-b" style="width:50%"></div>
         </div>
         <div class="pred-win-pcts">
-          <span id="wb-pct-a">—</span>
-          <span id="wb-pct-b">—</span>
+          <span id="wb-pct-a">-</span>
+          <span id="wb-pct-b">-</span>
         </div>
       </div>
     </section>
 
-    <!-- Tabs -->
+    <section id="pred-analysis" class="pred-analysis-card hidden">
+      <div class="pred-analysis-head">
+        <h3>Matchup Analysis</h3>
+      </div>
+      <p id="pred-analysis-summary" class="pred-analysis-summary"></p>
+      <div id="pred-analysis-points" class="pred-analysis-points"></div>
+    </section>
+
     <div class="pred-tabs">
       <button class="pred-tab active" data-tab="xi">Best XI</button>
       <button class="pred-tab" data-tab="features">Team Analysis</button>
       <button class="pred-tab" data-tab="h2h">Head-to-Head</button>
     </div>
 
-    <!-- ── Best XI Tab ──────────────────────────────────────────── -->
     <div id="tab-xi" class="pred-tab-panel">
       <div class="pred-xi-grid" id="xi-grid"></div>
     </div>
 
-    <!-- ── Team Features Tab ───────────────────────────────────── -->
     <div id="tab-features" class="pred-tab-panel hidden">
       <div class="pred-features-grid" id="features-grid"></div>
     </div>
 
-    <!-- ── Head-to-Head Tab ────────────────────────────────────── -->
     <div id="tab-h2h" class="pred-tab-panel hidden">
       <div class="pred-h2h-panel" id="h2h-panel"></div>
     </div>
-
-  </div><!-- /pred-results -->
-</div><!-- /pred-shell -->
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <style>
-/* ─── Prediction page design system ──────────────────────────── */
 .pred-shell { display:flex; flex-direction:column; gap:22px; }
-
-/* Hero */
 .pred-hero {
   display:grid; grid-template-columns:1.3fr 1fr; gap:24px;
   padding:36px 36px 32px;
@@ -179,13 +173,10 @@
 .pred-title { font-size:46px; line-height:1; color:#fff8eb; }
 .pred-title span { color:#ffd36d; }
 .pred-subtitle { margin-top:12px; color:rgba(255,240,218,0.80); font-size:14px; max-width:44ch; }
-
 .pred-hero-orbs { position:relative; min-height:200px; }
 .pred-orb { position:absolute; border-radius:50%; filter:blur(1px); }
-.pred-orb-a { width:180px;height:180px; top:0; right:60px;
-  background:radial-gradient(circle,rgba(255,210,80,.58) 0%,transparent 68%); }
-.pred-orb-b { width:130px;height:130px; bottom:0; right:0;
-  background:radial-gradient(circle,rgba(210,110,30,.72) 0%,transparent 72%); }
+.pred-orb-a { width:180px;height:180px; top:0; right:60px; background:radial-gradient(circle,rgba(255,210,80,.58) 0%,transparent 68%); }
+.pred-orb-b { width:130px;height:130px; bottom:0; right:0; background:radial-gradient(circle,rgba(210,110,30,.72) 0%,transparent 72%); }
 .pred-hero-badge {
   position:absolute; right:0; bottom:0;
   padding:16px 18px; border-radius:20px;
@@ -197,7 +188,6 @@
 .pred-badge-grid strong { display:block; color:#fff6e6; font-family:var(--score-font); font-size:20px; }
 .pred-badge-grid span { color:rgba(255,240,220,.68); font-size:11px; text-transform:uppercase; letter-spacing:.09em; }
 
-/* Config card */
 .pred-config-card {
   padding:26px 28px; border-radius:22px;
   border:1px solid var(--border);
@@ -209,7 +199,7 @@
 .pred-form-row { display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap; }
 .pred-field { display:flex; flex-direction:column; gap:7px; flex:1; min-width:180px; }
 .pred-field span { font-family:var(--condensed-font); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); }
-.pred-field-sm { max-width:200px; }
+.pred-field-sm { max-width:240px; }
 .pred-go-btn { height:40px; white-space:nowrap; gap:10px; padding:0 24px; }
 .pred-go-arrow { font-size:16px; transition:transform .2s; }
 .pred-go-btn:hover .pred-go-arrow { transform:translateX(4px); }
@@ -220,12 +210,9 @@
   font-size:13px; color:#567121;
 }
 .pred-train-result.error { border-color:rgba(182,64,50,.3); background:rgba(182,64,50,.08); color:#8a3027; }
-
-/* Results hidden state */
 .pred-results { display:flex; flex-direction:column; gap:20px; }
 .hidden { display:none !important; }
 
-/* Scoreboard */
 .pred-scoreboard {
   border-radius:24px; overflow:hidden;
   border:1px solid rgba(220,180,100,.35);
@@ -240,7 +227,6 @@
 .pred-score-main { font-family:var(--score-font); font-size:60px; line-height:1; color:#ffd36d; }
 .pred-score-range { display:block; font-family:var(--score-font); font-size:13px; color:rgba(255,240,200,.6); margin-top:4px; }
 .pred-team-meta { font-family:var(--condensed-font); font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,235,195,.55); margin-top:8px; }
-
 .pred-vs-block { text-align:center; }
 .pred-vs-label { font-family:var(--condensed-font); font-size:11px; letter-spacing:.22em; color:rgba(255,235,195,.5); text-transform:uppercase; margin-bottom:10px; }
 .pred-model-badge {
@@ -248,8 +234,6 @@
   font-family:var(--condensed-font); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
   background:rgba(255,255,255,.1); color:rgba(255,235,195,.8);
 }
-
-/* Win probability bar */
 .pred-win-bar-wrap { padding:20px 36px 24px; border-top:1px solid rgba(255,220,160,.12); }
 .pred-win-labels { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-family:var(--condensed-font); font-size:12px; color:rgba(255,240,215,.7); }
 .pred-winner-badge {
@@ -262,7 +246,20 @@
 .pred-win-fill-b { background:linear-gradient(90deg,#8ab153,#d5ecaf); transition:width .8s ease; }
 .pred-win-pcts { display:flex; justify-content:space-between; margin-top:8px; font-family:var(--score-font); font-size:16px; color:#fff8eb; }
 
-/* Tabs */
+.pred-analysis-card {
+  padding:22px 24px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:linear-gradient(180deg,#fffefb,#f7f1e6);
+}
+.pred-analysis-head h3 { font-size:20px; color:var(--text-primary); }
+.pred-analysis-summary { margin-top:10px; color:var(--text-secondary); font-size:14px; }
+.pred-analysis-points { display:grid; gap:10px; margin-top:16px; }
+.pred-analysis-point {
+  padding:12px 14px; border-radius:14px; border:1px solid var(--border);
+  background:rgba(255,255,255,.72); font-size:13px; color:var(--text-primary);
+}
+
 .pred-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); background:#fff; border-radius:16px 16px 0 0; padding:0 20px; }
 .pred-tab {
   font-family:var(--condensed-font); font-size:13px; font-weight:600;
@@ -274,16 +271,13 @@
 }
 .pred-tab:hover { color:var(--text-secondary); }
 .pred-tab.active { color:var(--accent-green); border-bottom-color:var(--accent-green); }
-
 .pred-tab-panel {
   padding:24px; background:#fff;
   border:1px solid var(--border); border-top:none;
   border-radius:0 0 16px 16px;
 }
 
-/* Best XI grid */
 .pred-xi-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-.pred-xi-team { }
 .pred-xi-team-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
 .pred-xi-team-name { font-family:var(--display-font); font-size:22px; color:var(--text-primary); }
 .pred-xi-list { display:flex; flex-direction:column; gap:8px; }
@@ -293,9 +287,7 @@
   padding:10px 14px; border-radius:12px;
   border:1px solid var(--border);
   background:linear-gradient(90deg,rgba(255,248,235,.7),rgba(255,255,255,.5));
-  transition:var(--transition);
 }
-.pred-xi-player:hover { border-color:var(--border-bright); transform:translateX(3px); }
 .pred-xi-rank { font-family:var(--score-font); font-size:13px; color:var(--text-muted); text-align:center; }
 .pred-xi-name { font-family:var(--condensed-font); font-size:15px; font-weight:600; color:var(--text-primary); }
 .pred-xi-role {
@@ -308,7 +300,6 @@
 .pred-xi-role.wicket-keeper { background:rgba(139,170,85,.15); color:#567121; }
 .pred-xi-score { font-family:var(--score-font); font-size:13px; color:var(--accent-green2); }
 
-/* Features grid */
 .pred-features-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 .pred-feat-card { border:1px solid var(--border); border-radius:18px; overflow:hidden; }
 .pred-feat-head { padding:16px 20px; border-bottom:1px solid var(--border); background:var(--bg-deep); }
@@ -316,8 +307,7 @@
 .pred-feat-body { padding:16px 20px; display:flex; flex-direction:column; gap:0; }
 .pred-feat-row {
   display:flex; justify-content:space-between; align-items:center;
-  padding:9px 0; border-bottom:1px solid var(--border);
-  font-size:13px;
+  padding:9px 0; border-bottom:1px solid var(--border); font-size:13px;
 }
 .pred-feat-row:last-child { border-bottom:none; }
 .pred-feat-label { color:var(--text-muted); font-family:var(--condensed-font); letter-spacing:.04em; text-transform:uppercase; font-size:11px; }
@@ -326,7 +316,6 @@
 .pred-feat-bar { height:5px; background:rgba(131,102,80,.14); border-radius:999px; overflow:hidden; margin-top:4px; }
 .pred-feat-bar-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,#d4a13d,#7eaa4f); }
 
-/* H2H panel */
 .pred-h2h-panel { display:grid; grid-template-columns:1fr auto 1fr; gap:16px; align-items:center; }
 .pred-h2h-stat { text-align:center; padding:20px; border-radius:18px; border:1px solid var(--border); background:rgba(255,248,235,.6); }
 .pred-h2h-num { font-family:var(--score-font); font-size:52px; line-height:1; color:var(--text-primary); }
@@ -349,80 +338,107 @@
 (function () {
   'use strict';
 
-  const matchSel     = document.getElementById('pred-match');
-  const batFirstSel  = document.getElementById('batting-first');
-  const predictBtn   = document.getElementById('predict-btn');
-  const trainBtn     = document.getElementById('train-btn');
-  const statusMsg    = document.getElementById('pred-status-msg');
-  const trainResult  = document.getElementById('train-result');
-  const resultsDiv   = document.getElementById('pred-results');
+  const team1Sel = document.getElementById('pred-team-1');
+  const team2Sel = document.getElementById('pred-team-2');
+  const batFirstSel = document.getElementById('batting-first');
+  const predictBtn = document.getElementById('predict-btn');
+  const trainBtn = document.getElementById('train-btn');
+  const statusMsg = document.getElementById('pred-status-msg');
+  const trainResult = document.getElementById('train-result');
+  const resultsDiv = document.getElementById('pred-results');
+  const analysisCard = document.getElementById('pred-analysis');
+  const analysisSummary = document.getElementById('pred-analysis-summary');
+  const analysisPoints = document.getElementById('pred-analysis-points');
 
-  // scoreboard elements
-  const pbT1Name    = document.getElementById('pb-t1-name');
-  const pbT2Name    = document.getElementById('pb-t2-name');
+  const pbT1Name = document.getElementById('pb-t1-name');
+  const pbT2Name = document.getElementById('pb-t2-name');
   const pbInn1Score = document.getElementById('pb-inn1-score');
   const pbInn2Score = document.getElementById('pb-inn2-score');
   const pbInn1Range = document.getElementById('pb-inn1-range');
   const pbInn2Range = document.getElementById('pb-inn2-range');
-  const pbT1Meta    = document.getElementById('pb-t1-meta');
-  const pbT2Meta    = document.getElementById('pb-t2-meta');
-  const modelBadge  = document.getElementById('model-badge');
-  const wbT1Name    = document.getElementById('wb-t1-name');
-  const wbT2Name    = document.getElementById('wb-t2-name');
-  const wbFillA     = document.getElementById('wb-fill-a');
-  const wbFillB     = document.getElementById('wb-fill-b');
-  const wbPctA      = document.getElementById('wb-pct-a');
-  const wbPctB      = document.getElementById('wb-pct-b');
-  const wbWinner    = document.getElementById('wb-winner-label');
-
-  // ── Populate batting-first dropdown ────────────────────────────
-  matchSel.addEventListener('change', () => {
-    const opt = matchSel.options[matchSel.selectedIndex];
-    batFirstSel.innerHTML = '<option value="">Auto (from toss)</option>';
-    if (!opt || !opt.value) return;
-    const t1id   = opt.getAttribute('data-t1');
-    const t2id   = opt.getAttribute('data-t2');
-    const t1name = opt.getAttribute('data-t1name');
-    const t2name = opt.getAttribute('data-t2name');
-    const o1 = document.createElement('option');
-    o1.value = t1id; o1.textContent = t1name + ' bats first';
-    const o2 = document.createElement('option');
-    o2.value = t2id; o2.textContent = t2name + ' bats first';
-    batFirstSel.appendChild(o1);
-    batFirstSel.appendChild(o2);
-  });
+  const pbT1Meta = document.getElementById('pb-t1-meta');
+  const pbT2Meta = document.getElementById('pb-t2-meta');
+  const modelBadge = document.getElementById('model-badge');
+  const wbT1Name = document.getElementById('wb-t1-name');
+  const wbT2Name = document.getElementById('wb-t2-name');
+  const wbFillA = document.getElementById('wb-fill-a');
+  const wbFillB = document.getElementById('wb-fill-b');
+  const wbPctA = document.getElementById('wb-pct-a');
+  const wbPctB = document.getElementById('wb-pct-b');
+  const wbWinner = document.getElementById('wb-winner-label');
 
   function setStatus(msg, tone) {
     statusMsg.textContent = msg || '';
     statusMsg.style.color = tone === 'error' ? 'var(--accent-red)' : 'var(--text-muted)';
   }
 
-  function fmt(n, d=1) {
+  function fmt(n, d) {
+    const digits = Number.isFinite(d) ? d : 1;
     const num = Number(n);
-    return Number.isFinite(num) ? num.toFixed(d) : '—';
+    return Number.isFinite(num) ? num.toFixed(digits) : '-';
   }
+
   function esc(s) {
-    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function roleClass(role) {
     const r = (role || '').toLowerCase().replace(/\s+/g, '-');
-    if (['batsman','bowler','wicket-keeper'].includes(r)) return r;
+    if (['batsman', 'bowler', 'wicket-keeper'].includes(r)) return r;
     if (r === 'all-rounder') return 'all-rounder';
     return 'batsman';
   }
 
-  // ── Render best XI ──────────────────────────────────────────────
+  function selectedText(selectEl, fallback) {
+    const option = selectEl.options[selectEl.selectedIndex];
+    return option && option.value ? option.textContent.trim() : fallback;
+  }
+
+  function refreshBattingOrderOptions() {
+    const team1Id = team1Sel.value;
+    const team2Id = team2Sel.value;
+    const team1Name = selectedText(team1Sel, 'Team 1');
+    const team2Name = selectedText(team2Sel, 'Team 2');
+
+    batFirstSel.innerHTML = '';
+
+    if (!team1Id && !team2Id) {
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Select teams first';
+      batFirstSel.appendChild(placeholder);
+      return;
+    }
+
+    if (team1Id) {
+      const o1 = document.createElement('option');
+      o1.value = team1Id;
+      o1.textContent = `${team1Name} bats first`;
+      batFirstSel.appendChild(o1);
+    }
+
+    if (team2Id) {
+      const o2 = document.createElement('option');
+      o2.value = team2Id;
+      o2.textContent = `${team2Name} bats first`;
+      batFirstSel.appendChild(o2);
+    }
+  }
+
+  team1Sel.addEventListener('change', refreshBattingOrderOptions);
+  team2Sel.addEventListener('change', refreshBattingOrderOptions);
+  refreshBattingOrderOptions();
+
   function renderXI(p) {
     const xiGrid = document.getElementById('xi-grid');
     const t1xi = p.team1_xi || [];
     const t2xi = p.team2_xi || [];
 
-    const renderTeam = (name, xi) => {
+    function renderTeam(name, xi) {
       if (!xi.length) {
         return `<div class="pred-xi-team">
           <div class="pred-xi-team-head"><div class="pred-xi-team-name">${esc(name)}</div></div>
-          <p style="color:var(--text-muted);font-size:13px;">No XI data available. Run analytics first.</p>
+          <p style="color:var(--text-muted);font-size:13px;">No XI data available for this team yet.</p>
         </div>`;
       }
       return `<div class="pred-xi-team">
@@ -433,7 +449,7 @@
         <div class="pred-xi-list">
           ${xi.map((pl, i) => `
             <div class="pred-xi-player">
-              <div class="pred-xi-rank">${i+1}</div>
+              <div class="pred-xi-rank">${i + 1}</div>
               <div class="pred-xi-name">${esc(pl.player_name)}</div>
               <div class="pred-xi-role ${roleClass(pl.role)}">${esc(pl.role)}</div>
               <div class="pred-xi-score">${fmt(pl.selection_score, 3)}</div>
@@ -441,32 +457,32 @@
           `).join('')}
         </div>
       </div>`;
-    };
+    }
 
     xiGrid.innerHTML = renderTeam(p.team1_name, t1xi) + renderTeam(p.team2_name, t2xi);
   }
 
-  // ── Render feature panel ────────────────────────────────────────
   function renderFeatures(p) {
     const grid = document.getElementById('features-grid');
-    const renderCard = (f, title) => {
+
+    function renderCard(f, title) {
       const rows = [
-        ['Avg Runs Scored', fmt(f.avg_runs_scored), f.avg_runs_scored, 200],
-        ['Avg Run Rate', fmt(f.avg_run_rate, 2)+'rpo', f.avg_run_rate, 12],
+        ['Avg Runs Scored', fmt(f.avg_runs_scored), f.avg_runs_scored, 220],
+        ['Avg Run Rate', `${fmt(f.avg_run_rate, 2)} rpo`, f.avg_run_rate, 12],
         ['Top Order SR', fmt(f.top_order_avg_sr, 1), f.top_order_avg_sr, 200],
-        ['Boundary Rate', fmt(f.boundary_rate, 2)+'/ov', f.boundary_rate, 8],
-        ['Dot% Batting', (f.dot_ball_pct_batting*100).toFixed(1)+'%', f.dot_ball_pct_batting, 1],
-        ['Avg Economy', fmt(f.avg_economy, 2)+'rpo', f.avg_economy, 12],
-        ['Dot% Bowling', (f.dot_ball_pct_bowling*100).toFixed(1)+'%', f.dot_ball_pct_bowling, 1],
+        ['Boundary Rate', `${fmt(f.boundary_rate, 2)} / ov`, f.boundary_rate, 8],
+        ['Dot% Batting', `${fmt((f.dot_ball_pct_batting || 0) * 100, 1)}%`, f.dot_ball_pct_batting, 1],
+        ['Avg Economy', `${fmt(f.avg_economy, 2)} rpo`, f.avg_economy, 12],
+        ['Dot% Bowling', `${fmt((f.dot_ball_pct_bowling || 0) * 100, 1)}%`, f.dot_ball_pct_bowling, 1],
         ['Bowling Index', fmt(f.xi_avg_bowling_index, 4), f.xi_avg_bowling_index, 1],
         ['Batting Index', fmt(f.xi_avg_batting_index, 4), f.xi_avg_batting_index, 1],
-        ['Consistency', (f.innings_consistency*100).toFixed(0)+'%', f.innings_consistency, 1],
+        ['Consistency', `${fmt((f.innings_consistency || 0) * 100, 0)}%`, f.innings_consistency, 1],
       ];
       return `<div class="pred-feat-card">
         <div class="pred-feat-head"><h3>${esc(title)}</h3></div>
         <div class="pred-feat-body">
           ${rows.map(([label, val, raw, cap]) => {
-            const pct = Math.min(100, Math.max(6, (Number(raw)/cap)*100)).toFixed(0);
+            const pct = Math.min(100, Math.max(6, (Number(raw || 0) / cap) * 100)).toFixed(0);
             return `<div class="pred-feat-row">
               <div>
                 <div class="pred-feat-label">${esc(label)}</div>
@@ -479,14 +495,11 @@
           }).join('')}
         </div>
       </div>`;
-    };
+    }
 
-    const f1 = p.team1_features || {};
-    const f2 = p.team2_features || {};
-    grid.innerHTML = renderCard(f1, p.team1_name) + renderCard(f2, p.team2_name);
+    grid.innerHTML = renderCard(p.team1_features || {}, p.team1_name) + renderCard(p.team2_features || {}, p.team2_name);
   }
 
-  // ── Render H2H panel ────────────────────────────────────────────
   function renderH2H(p) {
     const panel = document.getElementById('h2h-panel');
     const f1 = p.team1_features || {};
@@ -494,14 +507,12 @@
     const t1wins = f1.h2h_wins ?? 0;
     const t2wins = f2.h2h_wins ?? 0;
     const total = t1wins + t2wins;
-    const margin1 = fmt(f1.h2h_avg_margin_runs, 1);
-    const margin2 = fmt(f2.h2h_avg_margin_runs, 1);
 
     panel.innerHTML = `
       <div class="pred-h2h-stat">
         <div class="pred-h2h-num">${t1wins}</div>
         <div class="pred-h2h-lbl">${esc(p.team1_name)} Wins</div>
-        <div style="margin-top:10px;font-size:12px;color:var(--text-muted);">Avg margin: ${margin1} runs</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text-muted);">Avg margin: ${fmt(f1.h2h_avg_margin_runs, 1)} runs</div>
       </div>
       <div class="pred-h2h-mid">
         <div class="pred-h2h-vs">Head to Head</div>
@@ -509,50 +520,51 @@
         <div style="margin-top:12px;">
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Win share</div>
           <div class="pred-win-bar" style="height:10px;">
-            <div class="pred-win-fill-a" style="width:${total>0?(t1wins/total*100).toFixed(0):50}%"></div>
-            <div class="pred-win-fill-b" style="width:${total>0?(t2wins/total*100).toFixed(0):50}%"></div>
+            <div class="pred-win-fill-a" style="width:${total > 0 ? (t1wins / total * 100).toFixed(0) : 50}%"></div>
+            <div class="pred-win-fill-b" style="width:${total > 0 ? (t2wins / total * 100).toFixed(0) : 50}%"></div>
           </div>
         </div>
       </div>
       <div class="pred-h2h-stat">
         <div class="pred-h2h-num">${t2wins}</div>
         <div class="pred-h2h-lbl">${esc(p.team2_name)} Wins</div>
-        <div style="margin-top:10px;font-size:12px;color:var(--text-muted);">Avg margin: ${margin2} runs</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text-muted);">Avg margin: ${fmt(f2.h2h_avg_margin_runs, 1)} runs</div>
       </div>
     `;
   }
 
-  // ── Render full prediction ──────────────────────────────────────
+  function renderAnalysis(p) {
+    const points = Array.isArray(p.analysis_points) ? p.analysis_points : [];
+    analysisSummary.textContent = p.analysis_summary || '';
+    analysisPoints.innerHTML = points.map(point => `
+      <div class="pred-analysis-point">${esc(point)}</div>
+    `).join('');
+    analysisCard.classList.toggle('hidden', !analysisSummary.textContent && points.length === 0);
+  }
+
   function renderPrediction(p) {
-    // Scoreboard — show batting team first, bowling team second
-    const batFirst = p.batting_first_id === p.team1_id;
-    const t1IsBatFirst = batFirst;
-
-    // Panel layout: batting team on left, bowling on right
-    pbT1Name.textContent  = t1IsBatFirst ? p.team1_name : p.team2_name;
-    pbT2Name.textContent  = t1IsBatFirst ? p.team2_name : p.team1_name;
-    pbT1Meta.textContent  = (t1IsBatFirst ? p.team1_name : p.team2_name) + ' bats first';
-    pbT2Meta.textContent  = (t1IsBatFirst ? p.team2_name : p.team1_name) + ' bats second';
-
+    const team1BatsFirst = p.batting_first_id === p.team1_id;
+    pbT1Name.textContent = team1BatsFirst ? p.team1_name : p.team2_name;
+    pbT2Name.textContent = team1BatsFirst ? p.team2_name : p.team1_name;
+    pbT1Meta.textContent = `${pbT1Name.textContent} bats first`;
+    pbT2Meta.textContent = `${pbT2Name.textContent} bats second`;
     pbInn1Score.textContent = Math.round(p.innings1_predicted);
     pbInn2Score.textContent = Math.round(p.innings2_predicted);
-    pbInn1Range.textContent = `Range: ${Math.round(p.innings1_range[0])}–${Math.round(p.innings1_range[1])}`;
-    pbInn2Range.textContent = `Range: ${Math.round(p.innings2_range[0])}–${Math.round(p.innings2_range[1])}`;
+    pbInn1Range.textContent = `Range: ${Math.round(p.innings1_range[0])}-${Math.round(p.innings1_range[1])}`;
+    pbInn2Range.textContent = `Range: ${Math.round(p.innings2_range[0])}-${Math.round(p.innings2_range[1])}`;
 
     const modelLabel = p.model_used === 'ml' ? 'RF Model' : p.model_used === 'heuristic' ? 'Heuristic' : 'Mixed';
     modelBadge.textContent = modelLabel;
 
-    // Win bar
-    const pct1 = (p.win_probability_team1 * 100).toFixed(1);
-    const pct2 = (p.win_probability_team2 * 100).toFixed(1);
     wbT1Name.textContent = p.team1_name;
     wbT2Name.textContent = p.team2_name;
-    wbFillA.style.width  = Math.max(6, p.win_probability_team1 * 100) + '%';
-    wbFillB.style.width  = Math.max(6, p.win_probability_team2 * 100) + '%';
-    wbPctA.textContent   = pct1 + '%';
-    wbPctB.textContent   = pct2 + '%';
-    wbWinner.textContent = '🏆 ' + p.predicted_winner_name;
+    wbFillA.style.width = Math.max(6, p.win_probability_team1 * 100) + '%';
+    wbFillB.style.width = Math.max(6, p.win_probability_team2 * 100) + '%';
+    wbPctA.textContent = `${(p.win_probability_team1 * 100).toFixed(1)}%`;
+    wbPctB.textContent = `${(p.win_probability_team2 * 100).toFixed(1)}%`;
+    wbWinner.textContent = p.predicted_winner_name;
 
+    renderAnalysis(p);
     renderXI(p);
     renderFeatures(p);
     renderH2H(p);
@@ -561,21 +573,32 @@
     resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // ── Predict button ──────────────────────────────────────────────
   predictBtn.addEventListener('click', async () => {
-    const matchId = matchSel.value;
-    if (!matchId) { setStatus('Please select a match first.', 'error'); return; }
+    const team1Id = team1Sel.value ? Number(team1Sel.value) : null;
+    const team2Id = team2Sel.value ? Number(team2Sel.value) : null;
 
-    const batFirst = batFirstSel.value ? Number(batFirstSel.value) : null;
-    setStatus('Running prediction pipeline…');
+    if (!team1Id || !team2Id) {
+      setStatus('Please select both teams first.', 'error');
+      return;
+    }
+    if (team1Id === team2Id) {
+      setStatus('Please choose two different teams.', 'error');
+      return;
+    }
+
+    const batFirst = batFirstSel.value ? Number(batFirstSel.value) : team1Id;
+    setStatus('Running pre-match analysis and prediction...');
     predictBtn.disabled = true;
 
     try {
-      const body = batFirst ? { batting_first_id: batFirst } : {};
-      const res = await fetch(`/api/v1/prediction/match/${matchId}`, {
+      const res = await fetch('/api/v1/prediction/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          team1_id: team1Id,
+          team2_id: team2Id,
+          batting_first_id: batFirst,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -591,9 +614,8 @@
     }
   });
 
-  // ── Retrain button ──────────────────────────────────────────────
   trainBtn.addEventListener('click', async () => {
-    setStatus('Training models from completed matches…');
+    setStatus('Training models from completed matches...');
     trainBtn.disabled = true;
     trainResult.classList.add('hidden');
     trainResult.classList.remove('error');
@@ -605,15 +627,15 @@
         trainResult.textContent = 'Training failed: ' + (data.error || 'Unknown error');
         trainResult.classList.add('error');
       } else {
-        const t = data.training;
+        const t = data.training || {};
         const lines = [];
         if (t.inn1_samples != null) lines.push(`Innings 1 model: ${t.inn1_samples} samples`);
         if (t.inn2_samples != null) lines.push(`Innings 2 model: ${t.inn2_samples} samples`);
         if (t.winner_samples != null) lines.push(`Winner classifier: ${t.winner_samples} samples`);
-        if (t.inn1_warning) lines.push('⚠ ' + t.inn1_warning);
-        if (t.inn2_warning) lines.push('⚠ ' + t.inn2_warning);
-        if (t.winner_warning) lines.push('⚠ ' + t.winner_warning);
-        trainResult.innerHTML = '✓ ' + lines.join(' · ');
+        if (t.inn1_warning) lines.push(`Warning: ${t.inn1_warning}`);
+        if (t.inn2_warning) lines.push(`Warning: ${t.inn2_warning}`);
+        if (t.winner_warning) lines.push(`Warning: ${t.winner_warning}`);
+        trainResult.textContent = lines.join(' | ');
       }
       trainResult.classList.remove('hidden');
       setStatus('');
@@ -626,16 +648,14 @@
     }
   });
 
-  // ── Tab switching ───────────────────────────────────────────────
   document.querySelectorAll('.pred-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.pred-tab').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.pred-tab-panel').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.pred-tab-panel').forEach(panel => panel.classList.add('hidden'));
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
     });
   });
-
 })();
 </script>
 {% endblock %}

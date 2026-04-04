@@ -115,5 +115,5 @@ def analytics_dashboard():
 @pages_bp.route('/prediction')
 def prediction_dashboard():
     """ML-powered pre-match prediction page."""
-    matches = Match.query.order_by(Match.match_date.desc()).all()
-    return render_template('prediction.html', matches=matches)
+    teams = Team.query.order_by(Team.name.asc()).all()
+    return render_template('prediction.html', teams=teams)

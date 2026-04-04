@@ -112,6 +112,20 @@ _BWI_W_ENTROPY: Final[float] = 0.25
 _TOPSIS_WEIGHTS: Final[list[float]] = [0.40, 0.25, 0.20, 0.15]
 _TOPSIS_HIGHER_IS_BETTER: Final[list[bool]] = [True, True, True, True]
 
+
+def _normalize_role(role: Optional[str]) -> str:
+    """Map stored role variants to the canonical analytics role labels."""
+    value = (role or "").strip().lower().replace("_", "-")
+    aliases = {
+        "wk": "wicket-keeper",
+        "keeper": "wicket-keeper",
+        "wicketkeeper": "wicket-keeper",
+        "wicket keeper": "wicket-keeper",
+        "allrounder": "all-rounder",
+        "all rounder": "all-rounder",
+    }
+    return aliases.get(value, value)
+
 # ---------------------------------------------------------------------------
 # Custom exceptions
 # ---------------------------------------------------------------------------
@@ -649,16 +663,16 @@ class TeamSelector:
         bowl_index = {s.player_id: s for s in bowling_stats}
 
         batting_pool = [
-            (s.player_id, s.player_name, player_roles.get(s.player_id, "batsman"),
+            (s.player_id, s.player_name, _normalize_role(player_roles.get(s.player_id, "batsman")),
              cls._batting_criteria(s))
             for s in batting_stats
-            if player_roles.get(s.player_id) in BATTING_ROLES
+            if _normalize_role(player_roles.get(s.player_id)) in BATTING_ROLES
         ]
         bowling_pool = [
-            (s.player_id, s.player_name, player_roles.get(s.player_id, "bowler"),
+            (s.player_id, s.player_name, _normalize_role(player_roles.get(s.player_id, "bowler")),
              cls._bowling_criteria(s))
             for s in bowling_stats
-            if player_roles.get(s.player_id) in BOWLING_ROLES
+            if _normalize_role(player_roles.get(s.player_id)) in BOWLING_ROLES
         ]
 
         bat_ranked = topsis(batting_pool, _TOPSIS_WEIGHTS, _TOPSIS_HIGHER_IS_BETTER)
@@ -686,7 +700,7 @@ class TeamSelector:
 
         for pool in (bat_ranked, bowl_ranked):
             for ps in pool:
-                role = player_roles.get(ps.player_id, "")
+                role = _normalize_role(player_roles.get(ps.player_id, ""))
                 if role in quota_map and filled[role] < quota_map[role] and not ps.selected:
                     ps.selected = True
                     filled[role] += 1
@@ -885,7 +899,7 @@ class AnalyticsService:
             squad.append({
                 "player_id": player.id,
                 "player_name": player.name,
-                "role": player.role,
+                "role": _normalize_role(player.role),
                 "selection_score": round(choice.closeness, 4),
                 "batting_index": round(batting.batting_index, 4),
                 "gini_coefficient": round(batting.gini, 4),
@@ -978,7 +992,7 @@ class AnalyticsService:
         if not players:
             raise InsufficientDataError(f"Team team_id={team.id} has no players.")
 
-        player_roles = {player.id: player.role for player in players}
+        player_roles = {player.id: _normalize_role(player.role) for player in players}
         batting_stats = [cls._career_batting_or_empty(player) for player in players]
         bowling_stats = [cls._career_bowling_or_empty(player) for player in players]
         batting_lookup = {stats.player_id: stats for stats in batting_stats}
@@ -1239,7 +1253,7 @@ class AnalyticsService:
 
         balls = (
             db.session.query(Ball)
-            .filter(Ball.striker_id == player_id)
+            .filter(Ball.batsman_id == player_id)
             .order_by(Ball.inning_id, Ball.over_number, Ball.ball_number)
             .all()
         )
