@@ -38,7 +38,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from typing import Optional
-
+from app.services.team_profiles import TeamProfileService
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -171,160 +171,45 @@ class FeatureBuilder:
     LOOKBACK = 15  # max past matches to consider
 
     @classmethod
-    def build(cls, team_id: int, opponent_id: int, over_limit: int = 20) -> "TeamMatchFeatures":
-        """
-        Query the DB and assemble a feature vector for *team_id* when
-        facing *opponent_id*.
+    def build(cls, team_id: int, opponent_id: int, over_limit: int = 20):
 
-        Must be called within a Flask application context.
-        """
-        from app.extensions import db
-        from app.models import Match, Inning, Ball, BattingScorecard, BowlingScorecard, Partnership
+        team_profile = TeamProfileService.get(team_id)
+        opponent_profile = TeamProfileService.get(opponent_id)
 
-        feat = TeamMatchFeatures(team_id=team_id, team_name="")
-
-        # ── team name ─────────────────────────────────────────────────────
-        from app.models import Team
-        team = db.session.get(Team, team_id)
-        feat.team_name = team.name if team else f"Team {team_id}"
-
-        # ── past matches involving this team ─────────────────────────────
-        past_matches = (
-            Match.query
-            .filter(
-                ((Match.team_1_id == team_id) | (Match.team_2_id == team_id)),
-                Match.status == "completed",
-            )
-            .order_by(Match.match_date.desc())
-            .limit(cls.LOOKBACK)
-            .all()
+        feat = TeamMatchFeatures(
+            team_id=team_id,
+            team_name=team_profile.team_name,
         )
 
-        batting_runs: list[float] = []
-        batting_wickets: list[float] = []
-        run_rates: list[float] = []
-        bowling_conceded: list[float] = []
-        bowling_wickets: list[float] = []
-        economy_rates: list[float] = []
-        extras_list: list[float] = []
-        partnership_runs: list[float] = []
+        # ── Batting (from team profile)
+        feat.avg_runs_scored = team_profile.avg_runs
+        feat.avg_wickets_lost = team_profile.avg_wickets
+        feat.avg_run_rate = team_profile.run_rate
+        feat.boundary_rate = team_profile.boundary_rate
+        feat.innings_consistency = team_profile.batting_consistency
+        feat.top_order_avg_sr = team_profile.run_rate * 12  # scaled proxy
 
-        for match in past_matches:
-            # Find this team's batting innings
-            bat_innings = (
-                Inning.query
-                .filter_by(match_id=match.id, batting_team_id=team_id)
-                .first()
-            )
-            if bat_innings:
-                batting_runs.append(float(bat_innings.total_runs))
-                batting_wickets.append(float(bat_innings.total_wickets))
-                overs = bat_innings.total_overs or 0.1
-                run_rates.append(bat_innings.total_runs / overs)
-                extras_bat = bat_innings.extras or 0
+        # ── Bowling (from opponent profile)
+        feat.avg_runs_conceded = opponent_profile.avg_conceded
+        feat.avg_wickets_taken = opponent_profile.avg_wickets_taken
+        feat.avg_economy = opponent_profile.economy
+        feat.dot_ball_pct_bowling = opponent_profile.dot_ball_pct or 0.0
+        feat.bowling_consistency = opponent_profile.bowling_consistency
 
-                # Boundaries per over
-                balls_in_inn = Ball.query.filter_by(inning_id=bat_innings.id).all()
-                boundaries = sum(1 for b in balls_in_inn if b.runs_scored in (4, 6))
-                dots_faced = sum(1 for b in balls_in_inn if b.runs_scored == 0 and b.is_legal_delivery and not b.extra_type)
-                total_legal = sum(1 for b in balls_in_inn if b.is_legal_delivery)
-                feat.boundary_rate = (boundaries / overs) if overs > 0 else 0.0
-                feat.dot_ball_pct_batting = (dots_faced / total_legal) if total_legal > 0 else 0.0
+        # ── XI strength (TOPSIS already inside profile)
+        feat.xi_avg_batting_index = team_profile.batting_index
+        feat.xi_avg_bowling_index = team_profile.bowling_index
 
-                # Top-order strike rate (top-3 batting positions)
-                top3_scs = (
-                    BattingScorecard.query
-                    .filter(BattingScorecard.innings_id == bat_innings.id,
-                            BattingScorecard.batting_position <= 3)
-                    .all()
-                )
-                if top3_scs:
-                    feat.top_order_avg_sr = sum(sc.strike_rate or 0 for sc in top3_scs) / len(top3_scs)
+        # ── Depth (approximation)
+        feat.xi_batting_depth =  (team_profile.batting_index / 200)
+        feat.xi_bowling_depth = 0.6 + (team_profile.bowling_index / 200)
 
-                # Partnerships
-                pships = Partnership.query.filter_by(inning_id=bat_innings.id).all()
-                if pships:
-                    partnership_runs.extend(float(p.runs_scored) for p in pships)
-
-            # Find opponent's bowling innings (= this team's batting innings opponent)
-            bowl_innings = (
-                Inning.query
-                .filter_by(match_id=match.id, bowling_team_id=team_id)
-                .first()
-            )
-            if bowl_innings:
-                bowling_conceded.append(float(bowl_innings.total_runs))
-                bowling_wickets.append(float(bowl_innings.total_wickets))
-                overs_bowl = bowl_innings.total_overs or 0.1
-                economy_rates.append(bowl_innings.total_runs / overs_bowl)
-                extras_list.append(float(bowl_innings.extras or 0))
-
-                balls_bowl = Ball.query.filter_by(inning_id=bowl_innings.id).all()
-                dots_bowl = sum(1 for b in balls_bowl if b.runs_scored == 0 and b.is_legal_delivery and not b.extra_type)
-                legal_bowl = sum(1 for b in balls_bowl if b.is_legal_delivery)
-                feat.dot_ball_pct_bowling = (dots_bowl / legal_bowl) if legal_bowl > 0 else 0.0
-
-        # ── aggregate batting ─────────────────────────────────────────────
-        def _mean(lst): return sum(lst) / len(lst) if lst else 0.0
-
-        feat.avg_runs_scored = _mean(batting_runs)
-        feat.avg_wickets_lost = _mean(batting_wickets)
-        feat.avg_run_rate = _mean(run_rates)
-        feat.innings_consistency = 1.0 - _gini(batting_runs)
-        feat.avg_partnerships_runs = _mean(partnership_runs)
-
-        # ── aggregate bowling ─────────────────────────────────────────────
-        feat.avg_runs_conceded = _mean(bowling_conceded)
-        feat.avg_wickets_taken = _mean(bowling_wickets)
-        feat.avg_economy = _mean(economy_rates)
-        feat.avg_extras_conceded = _mean(extras_list)
-        feat.bowling_consistency = 1.0 - _gini(bowling_wickets)
-
-        # ── head-to-head ──────────────────────────────────────────────────
-        h2h_matches = Match.query.filter(
-            (
-                ((Match.team_1_id == team_id) & (Match.team_2_id == opponent_id)) |
-                ((Match.team_1_id == opponent_id) & (Match.team_2_id == team_id))
-            ),
-            Match.status == "completed",
-        ).all()
-
-        for hm in h2h_matches:
-            if hm.winner_id == team_id:
-                feat.h2h_wins += 1
-            elif hm.winner_id is not None:
-                feat.h2h_losses += 1
-            # margin in runs
-            if hm.win_margin:
-                try:
-                    nums = [int(x) for x in hm.win_margin.split() if x.isdigit()]
-                    if nums:
-                        feat.h2h_avg_margin_runs += nums[0]
-                except Exception:
-                    pass
-
-        total_h2h = feat.h2h_wins + feat.h2h_losses
-        if total_h2h > 0:
-            feat.h2h_avg_margin_runs /= total_h2h
-
-        # ── Best XI indices (from analytics layer) ────────────────────────
-        try:
-            from app.services.analytics_service import AnalyticsService
-            batting_stats = [AnalyticsService._career_batting_or_empty(p) for p in (team.players.all() if team else [])]
-            bowling_stats = [AnalyticsService._career_bowling_or_empty(p) for p in (team.players.all() if team else [])]
-            if batting_stats:
-                feat.xi_avg_batting_index = _mean([s.batting_index for s in batting_stats])
-            if bowling_stats:
-                feat.xi_avg_bowling_index = _mean([s.bowling_index for s in bowling_stats])
-
-            players = team.players.all() if team else []
-            batting_roles = {"batsman", "wicket-keeper", "all-rounder"}
-            bowling_roles = {"bowler", "all-rounder"}
-            n = len(players) or 1
-            feat.xi_batting_depth = sum(1 for p in players if p.role in batting_roles) / n
-            feat.xi_bowling_depth = sum(1 for p in players if p.role in bowling_roles) / n
-        except Exception as exc:
-            logger.debug("Analytics XI features skipped: %s", exc)
+        # ── Head-to-head (keep your existing logic OR simplify)
+        feat.h2h_wins = team_profile.h2h_wins_vs.get(opponent_id, 0)
+        feat.h2h_losses = team_profile.h2h_losses_vs.get(opponent_id, 0)
+        feat.h2h_avg_margin_runs = team_profile.h2h_avg_margin_runs_vs.get(opponent_id, 0.0)
+        feat.dot_ball_pct_batting = team_profile.dot_ball_pct or 0.0
+        feat.avg_partnerships_runs = team_profile.avg_partnership or 0.0
 
         return feat
 
@@ -452,14 +337,14 @@ class ModelTrainer:
         "max_depth": 8,
         "min_samples_leaf": 2,
         "random_state": 42,
-        "n_jobs": -1,
+        "n_jobs": 1,
     }
     WINNER_PARAMS = {
         "n_estimators": 200,
         "max_depth": 6,
         "min_samples_leaf": 2,
         "random_state": 42,
-        "n_jobs": -1,
+        "n_jobs": 1,
         "class_weight": "balanced",
     }
 
@@ -629,10 +514,6 @@ class MLService:
         match = db.session.get(Match, match_id)
         if match is None:
             raise ValueError(f"Match {match_id} not found")
-        if (match.status or "").lower() == "completed":
-            raise ValueError(
-                "This route is only for upcoming matchups. Select two teams on the prediction page instead."
-            )
 
         t1_id = match.team_1_id
         t2_id = match.team_2_id

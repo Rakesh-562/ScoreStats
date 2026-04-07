@@ -705,6 +705,28 @@ class TeamSelector:
                     ps.selected = True
                     filled[role] += 1
 
+        selected_ids = {
+            ps.player_id
+            for pool in (bat_ranked, bowl_ranked)
+            for ps in pool
+            if ps.selected
+        }
+        if len(selected_ids) >= comp.total:
+            return
+
+        fallback_ranked = sorted(
+            {ps.player_id: ps for ps in bat_ranked + bowl_ranked}.values(),
+            key=lambda ps: ps.closeness,
+            reverse=True,
+        )
+        for ps in fallback_ranked:
+            if ps.player_id in selected_ids:
+                continue
+            ps.selected = True
+            selected_ids.add(ps.player_id)
+            if len(selected_ids) >= comp.total:
+                break
+
 
 # ---------------------------------------------------------------------------
 # AnalyticsService — DB-aware façade

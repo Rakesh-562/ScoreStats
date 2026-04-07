@@ -61,7 +61,7 @@
 }
 .td-hero-stats {
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
   gap:10px;
   margin-top:22px;
 }
@@ -203,6 +203,43 @@
   background:rgba(255,248,237,.76);
   color:var(--text-muted);
 }
+.td-subsection + .td-subsection {
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid rgba(201,151,45,.18);
+}
+.td-h2h-list {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.td-h2h-card {
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(255,248,237,.88);
+  border:1px solid rgba(219,202,179,.78);
+}
+.td-h2h-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.td-h2h-opponent {
+  font-size:15px;
+  font-weight:700;
+  color:var(--text-primary);
+}
+.td-h2h-record {
+  font-family:var(--score-font);
+  font-size:18px;
+  color:var(--accent-orange);
+}
+.td-h2h-meta {
+  margin-top:4px;
+  font-size:12px;
+  color:var(--text-muted);
+}
 
 @media (max-width: 920px) {
   .td-grid { grid-template-columns:1fr; }
@@ -246,6 +283,10 @@
           <div class="td-hero-stat">
             <span>Matches Logged</span>
             <strong>{{ matches|length }}</strong>
+          </div>
+          <div class="td-hero-stat">
+            <span>Recent Form</span>
+            <strong>{{ (team_profile.recent_form * 100)|round|int if team_profile else 0 }}%</strong>
           </div>
         </div>
       </div>
@@ -294,27 +335,54 @@
         </div>
       </div>
       <div class="td-panel-body">
-        {% if matches %}
-        <div class="td-match-list">
-          {% for match in matches[:5] %}
-          <div class="td-match-card">
-            <div class="td-match-date">{{ match.match_date.strftime('%d %b %Y') if match.match_date else 'Date TBD' }}</div>
-            <div class="td-match-teams">
-              {{ match.team1.name if match.team1 else 'Team ' ~ match.team_1_id }}
-              vs
-              {{ match.team2.name if match.team2 else 'Team ' ~ match.team_2_id }}
+        <div class="td-subsection">
+          <div class="td-role-title">Head To Head Wins</div>
+          {% if h2h_summary %}
+          <div class="td-h2h-list">
+            {% for item in h2h_summary %}
+            <div class="td-h2h-card">
+              <div class="td-h2h-top">
+                <div class="td-h2h-opponent">{{ item.opponent_name }}</div>
+                <div class="td-h2h-record">{{ item.wins }} - {{ item.losses }}</div>
+              </div>
+              <div class="td-h2h-meta">
+                Matches: {{ item.matches }}
+                {% if item.avg_margin_runs %}
+                | Avg win margin: {{ item.avg_margin_runs }} runs
+                {% endif %}
+              </div>
             </div>
-            <div class="td-match-meta">
-              Status: {{ match.status|replace('_', ' ')|title if match.status else 'Scheduled' }}
-              {% if match.match_type %}<br>Format: {{ match.match_type|upper }}{% endif %}
-              {% if match.winner_team %}<br>Winner: {{ match.winner_team.name }}{% endif %}
-            </div>
+            {% endfor %}
           </div>
-          {% endfor %}
+          {% else %}
+          <div class="td-empty">No completed head-to-head results are available yet.</div>
+          {% endif %}
         </div>
-        {% else %}
-        <div class="td-empty">No match history is available for this team yet.</div>
-        {% endif %}
+
+        <div class="td-subsection">
+          <div class="td-role-title">Recent Matches</div>
+          {% if matches %}
+          <div class="td-match-list">
+            {% for match in matches[:5] %}
+            <div class="td-match-card">
+              <div class="td-match-date">{{ match.match_date.strftime('%d %b %Y') if match.match_date else 'Date TBD' }}</div>
+              <div class="td-match-teams">
+                {{ match.team1.name if match.team1 else 'Team ' ~ match.team_1_id }}
+                vs
+                {{ match.team2.name if match.team2 else 'Team ' ~ match.team_2_id }}
+              </div>
+              <div class="td-match-meta">
+                Status: {{ match.status|replace('_', ' ')|title if match.status else 'Scheduled' }}
+                {% if match.match_type %}<br>Format: {{ match.match_type|upper }}{% endif %}
+                {% if match.winner_team %}<br>Winner: {{ match.winner_team.name }}{% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="td-empty">No match history is available for this team yet.</div>
+          {% endif %}
+        </div>
       </div>
     </section>
   </div>

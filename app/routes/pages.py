@@ -71,6 +71,8 @@ def player_profile(player_id):
 
 @pages_bp.route('/teams/<int:team_id>')
 def team_detail(team_id):
+    from app.services.team_profiles import TeamProfileService
+
     team=Team.query.get_or_404(team_id)
     players=Player.query.filter_by(team_id=team_id).all()
     
@@ -83,7 +85,17 @@ def team_detail(team_id):
         players_by_role[role].append(p)
         
     matches=Match.query.filter((Match.team_1_id==team_id)|(Match.team_2_id==team_id)).order_by(Match.match_date.desc()).all()
-    return render_template('team_details.html', team=team, players=players, players_by_role=players_by_role, matches=matches)
+    team_profile = TeamProfileService.get(team_id)
+    h2h_summary = TeamProfileService.get_head_to_head_summary(team_id)
+    return render_template(
+        'team_details.html',
+        team=team,
+        players=players,
+        players_by_role=players_by_role,
+        matches=matches,
+        team_profile=team_profile,
+        h2h_summary=h2h_summary,
+    )
 
 @pages_bp.route('/teams')
 def teams_list():

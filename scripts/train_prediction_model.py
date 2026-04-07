@@ -102,7 +102,7 @@ def train_score_predictor(df):
         min_samples_split=5,
         min_samples_leaf=3,
         random_state=42,
-        n_jobs=-1,
+        n_jobs=1,
     )
  
     model.fit(X_train, y_train)
@@ -130,7 +130,7 @@ def train_score_predictor(df):
     )
     print("\nFeature importance (top 8):")
     for name, imp in importances[:8]:
-        bar = "█" * int(imp * 50)
+        bar = "#" * int(imp * 50)
         print(f"  {name:<25} {bar}  {imp:.3f}")
  
     return model
@@ -178,7 +178,7 @@ def train_win_predictor(df):
         min_samples_leaf=3,
         class_weight='balanced',
         random_state=42,
-        n_jobs=-1,
+        n_jobs=1,
     )
  
     model.fit(X_train, y_train)
@@ -203,7 +203,7 @@ def train_win_predictor(df):
     )
     print("\nFeature importance (top 8):")
     for name, imp in importances[:8]:
-        bar = "█" * int(imp * 50)
+        bar = "#" * int(imp * 50)
         print(f"  {name:<25} {bar}  {imp:.3f}")
  
     return model
@@ -218,11 +218,11 @@ def save_everything(score_model, win_model):
  
     if score_model:
         joblib.dump(score_model, 'models_ml/score_predictor.pkl')
-        print("\nSaved → models_ml/score_predictor.pkl")
+        print("\nSaved -> models_ml/score_predictor.pkl")
  
     if win_model:
         joblib.dump(win_model, 'models_ml/win_predictor.pkl')
-        print("Saved → models_ml/win_predictor.pkl")
+        print("Saved -> models_ml/win_predictor.pkl")
  
     # Save feature list so prediction_service.py uses the exact same order
     meta = {
@@ -231,7 +231,7 @@ def save_everything(score_model, win_model):
     }
     with open('models_ml/feature_meta.json', 'w') as f:
         json.dump(meta, f, indent=2)
-    print("Saved → models_ml/feature_meta.json")
+    print("Saved -> models_ml/feature_meta.json")
  
  
 # ─────────────────────────────────────────────────────────────────────────────
