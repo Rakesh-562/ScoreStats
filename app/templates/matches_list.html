@@ -16,39 +16,60 @@
   <button class="tab-btn" data-filter="completed" onclick="filterMatches(this,'completed')">Completed</button>
 </div>
 
+<style>
+.list-delete-row { display:flex; gap:12px; align-items:stretch; margin-bottom:12px; }
+.list-delete-row .match-card { flex:1; margin-bottom:0; }
+.danger-btn {
+  border:1px solid rgba(182,64,50,.22);
+  background:rgba(182,64,50,.08);
+  color:#8a3027;
+  border-radius:14px;
+  padding:0 16px;
+  font-family:var(--condensed-font);
+  font-size:12px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  min-width:96px;
+}
+.danger-btn:hover { background:rgba(182,64,50,.14); }
+</style>
+
 <div class="space-y-3" id="matches-list">
   {% for match in matches %}
-  <a href="/match/{{ match.id }}" class="match-card {% if match.status == 'live' %}live-card{% endif %} animate-in delay-{{ [loop.index, 5]|min }}" data-status="{{ match.status }}">
-    <div class="match-card-teams">
-      <div style="flex:1;">
-        <div class="match-team-name">{{ match.team1.name if match.team1 else 'Team ' ~ match.team_1_id }}</div>
+  <div class="list-delete-row animate-in delay-{{ [loop.index, 5]|min }}" data-status="{{ match.status }}">
+    <a href="/match/{{ match.id }}" class="match-card {% if match.status == 'live' %}live-card{% endif %}">
+      <div class="match-card-teams">
+        <div style="flex:1;">
+          <div class="match-team-name">{{ match.team1.name if match.team1 else 'Team ' ~ match.team_1_id }}</div>
+        </div>
+        <div class="match-vs">vs</div>
+        <div style="flex:1;text-align:right;">
+          <div class="match-team-name">{{ match.team2.name if match.team2 else 'Team ' ~ match.team_2_id }}</div>
+        </div>
+        <div style="margin-left:16px;">
+          {% if match.status == 'live' %}
+            <span class="badge-live"><span class="dot"></span>Live</span>
+          {% elif match.status == 'completed' %}
+            <span class="badge-completed">Done</span>
+          {% else %}
+            <span class="badge-upcoming">Scheduled</span>
+          {% endif %}
+        </div>
       </div>
-      <div class="match-vs">vs</div>
-      <div style="flex:1;text-align:right;">
-        <div class="match-team-name">{{ match.team2.name if match.team2 else 'Team ' ~ match.team_2_id }}</div>
-      </div>
-      <div style="margin-left:16px;">
-        {% if match.status == 'live' %}
-          <span class="badge-live"><span class="dot"></span>Live</span>
-        {% elif match.status == 'completed' %}
-          <span class="badge-completed">Done</span>
-        {% else %}
-          <span class="badge-upcoming">Scheduled</span>
+
+      <div class="match-card-meta">
+        <span class="match-meta-item">{{ match.match_type }}</span>
+        <span class="match-meta-item">{{ match.over_limit or 20 }} overs</span>
+        {% if match.match_date %}
+        <span class="match-meta-item">{{ match.match_date.strftime('%d %b %Y, %I:%M %p') }}</span>
+        {% endif %}
+        {% if match.status == 'completed' and match.win_margin %}
+        <span style="margin-left:auto;font-size:12px;color:var(--accent-green);font-family:var(--condensed-font);">{{ match.win_margin }}</span>
         {% endif %}
       </div>
-    </div>
-
-    <div class="match-card-meta">
-      <span class="match-meta-item">{{ match.match_type }}</span>
-      <span class="match-meta-item">{{ match.over_limit or 20 }} overs</span>
-      {% if match.match_date %}
-      <span class="match-meta-item">{{ match.match_date.strftime('%d %b %Y, %I:%M %p') }}</span>
-      {% endif %}
-      {% if match.status == 'completed' and match.win_margin %}
-      <span style="margin-left:auto;font-size:12px;color:var(--accent-green);font-family:var(--condensed-font);">{{ match.win_margin }}</span>
-      {% endif %}
-    </div>
-  </a>
+    </a>
+    <button class="danger-btn" onclick="deleteMatch(event, {{ match.id }}, '{{ (match.team1.name if match.team1 else 'Team ' ~ match.team_1_id)|e }}', '{{ (match.team2.name if match.team2 else 'Team ' ~ match.team_2_id)|e }}')">Delete</button>
+  </div>
   {% else %}
   <div class="card">
     <div class="empty-state">
@@ -64,8 +85,22 @@ function filterMatches(btn, filter) {
   document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('#matches-list [data-status]').forEach(card => {
-    card.style.display = (filter === 'all' || card.dataset.status === filter) ? 'block' : 'none';
+    card.style.display = (filter === 'all' || card.dataset.status === filter) ? 'flex' : 'none';
   });
+}
+
+async function deleteMatch(event, matchId, team1Name, team2Name) {
+  event.preventDefault();
+  const ok = confirm(`Delete match: ${team1Name} vs ${team2Name}?\n\nThis will also delete related innings, balls, and scorecards.`);
+  if (!ok) return;
+
+  const res = await fetch(`/api/v1/matches/${matchId}`, { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    alert(data.error || 'Failed to delete the match.');
+    return;
+  }
+  location.reload();
 }
 </script>
 {% endblock %}

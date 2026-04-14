@@ -1,5 +1,6 @@
 from flask import Blueprint,request,jsonify
 from app.services import MatchService
+from app.services.deletion_service import DeletionService
 from app.validators import MatchCreateSchema,TossRecordSchema
 from marshmallow import ValidationError
 matches_bp=Blueprint('matches',__name__)
@@ -68,3 +69,18 @@ def get_live_matches():
         'count':len(matches),
         'matches':[m.to_dict() for m in matches]
     }),200
+
+
+@matches_bp.route('/<int:match_id>', methods=['DELETE'])
+def delete_match(match_id):
+    try:
+        result = DeletionService.delete_match(match_id)
+        return jsonify({
+            'success': True,
+            'message': 'Match deleted successfully',
+            **result,
+        }), 200
+    except ValueError as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 404
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500

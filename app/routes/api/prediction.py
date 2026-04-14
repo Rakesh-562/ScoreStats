@@ -80,6 +80,7 @@ def _prediction_to_payload(pred):
         "win_probability_team2": pred.win_probability_team2,
         "predicted_winner_id": pred.predicted_winner_id,
         "predicted_winner_name": pred.predicted_winner_name,
+        "win_probability_note": pred.win_probability_note,
         "model_used": pred.model_used,
         "training_status": pred.training_status,
         "team1_xi": pred.team1_xi,

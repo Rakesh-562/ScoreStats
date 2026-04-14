@@ -9,27 +9,48 @@
   <a href="/#team-admin-panel" class="btn btn-primary">+ Add Team</a>
 </div>
 
+<style>
+.team-row { display:flex; gap:12px; align-items:stretch; }
+.team-row .card { flex:1; }
+.danger-btn {
+  border:1px solid rgba(182,64,50,.22);
+  background:rgba(182,64,50,.08);
+  color:#8a3027;
+  border-radius:14px;
+  padding:0 16px;
+  font-family:var(--condensed-font);
+  font-size:12px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  min-width:96px;
+}
+.danger-btn:hover { background:rgba(182,64,50,.14); }
+</style>
+
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
   {% for team in teams %}
-  <a href="/teams/{{ team.id }}" class="card card-hover animate-in delay-{{ [loop.index, 5]|min }}" style="text-decoration:none;display:block;padding:24px;">
-    <div style="display:flex;align-items:center;gap:18px;">
-      <div class="team-avatar" style="width:60px;height:60px;font-size:20px;border-radius:14px;">
-        {{ team.short_name[:2] | upper }}
-      </div>
-
-      <div style="flex:1;">
-        <div style="font-family:var(--display-font);font-size:20px;font-weight:700;color:var(--text-primary);">{{ team.name }}</div>
-        <div style="font-family:var(--condensed-font);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-top:3px;">{{ team.short_name }}</div>
-      </div>
-
-      <div style="text-align:right;">
-        <div style="font-family:var(--score-font);font-size:24px;color:var(--accent-green);">
-          {% if team.players is not none %}{{ team.players.count() }}{% else %}0{% endif %}
+  <div class="team-row animate-in delay-{{ [loop.index, 5]|min }}">
+    <a href="/teams/{{ team.id }}" class="card card-hover" style="text-decoration:none;display:block;padding:24px;">
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div class="team-avatar" style="width:60px;height:60px;font-size:20px;border-radius:14px;">
+          {{ team.short_name[:2] | upper }}
         </div>
-        <div style="font-family:var(--condensed-font);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);">Players</div>
+
+        <div style="flex:1;">
+          <div style="font-family:var(--display-font);font-size:20px;font-weight:700;color:var(--text-primary);">{{ team.name }}</div>
+          <div style="font-family:var(--condensed-font);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-top:3px;">{{ team.short_name }}</div>
+        </div>
+
+        <div style="text-align:right;">
+          <div style="font-family:var(--score-font);font-size:24px;color:var(--accent-green);">
+            {% if team.players is not none %}{{ team.players.count() }}{% else %}0{% endif %}
+          </div>
+          <div style="font-family:var(--condensed-font);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);">Players</div>
+        </div>
       </div>
-    </div>
-  </a>
+    </a>
+    <button class="danger-btn" onclick="deleteTeam(event, {{ team.id }}, '{{ team.name|e }}')">Delete</button>
+  </div>
   {% else %}
   <div class="card" style="grid-column:1/-1;">
     <div class="empty-state">
@@ -39,4 +60,20 @@
   </div>
   {% endfor %}
 </div>
+
+<script>
+async function deleteTeam(event, teamId, teamName) {
+  event.preventDefault();
+  const ok = confirm(`Delete team: ${teamName}?\n\nThis will also delete related matches and players.`);
+  if (!ok) return;
+
+  const res = await fetch(`/api/v1/teams/${teamId}`, { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    alert(data.message || data.error || 'Failed to delete the team.');
+    return;
+  }
+  location.reload();
+}
+</script>
 {% endblock %}

@@ -1,6 +1,7 @@
 from flask import Blueprint,request,jsonify
 from app.models import Player 
 from app.extensions import db
+from app.services.deletion_service import DeletionService
 from app.validators import PlayerCreateSchema,PlayerUpdateSchema
 from marshmallow import ValidationError
 player_bp=Blueprint('palyer',__name__)
@@ -70,16 +71,15 @@ def update_player(player_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 @player_bp.route('/<int:player_id>',methods=['DELETE'])
 def delete_player(player_id):
-    player=db.session.get(Player, player_id)
-    if not player:
-        return jsonify({'success':False,'error':'Player not found'}),404
     try:
-        db.session.delete(player)
-        db.session.commit()
+        result = DeletionService.delete_player(player_id)
         return jsonify({
             'success':True,
-            'message':'Player deleted successfully'
+            'message':'Player deleted successfully',
+            **result,
         }) ,200
+    except ValueError as exc:
+        return jsonify({'success':False,'error':str(exc)}),404
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

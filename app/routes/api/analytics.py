@@ -37,7 +37,6 @@ from app.services.analytics_service import (
 from app.validators.analytics_validator import (
     load_career_query,
     load_innings_query,
-    load_selection_payload,
 )
 
 logger = logging.getLogger(__name__)
@@ -259,13 +258,6 @@ def innings_bowling(innings_id: int):
     profiles.sort(key=lambda p: p.bowling_index, reverse=True)
     return jsonify({"innings_id": innings_id, "count": len(profiles),
                     "bowlers": _bowling_schema_many.dump(profiles)}), HTTPStatus.OK
-
-
-@analytics_bp.post("/select-xi")
-def select_xi():
-    payload = load_selection_payload(request.get_json(silent=True) or {})
-    preview = AnalyticsService.pre_match_team_preview(payload["match_id"])
-    return jsonify(preview), HTTPStatus.OK
 
 
 @analytics_bp.get("/player/<int:player_id>/career")

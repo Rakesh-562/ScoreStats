@@ -279,7 +279,7 @@ class TrainingDataBuilder:
         """
         Returns (X_winner, y_winner).
 
-        X row = full_vector(team1) + full_vector(team2) + [inn1_runs, inn2_runs].
+        X row = full_vector(team1) + full_vector(team2) + [team1_runs, team2_runs].
         y = 1 if team1 won, 0 if team2 won.
         """
         from app.extensions import db
@@ -312,8 +312,17 @@ class TrainingDataBuilder:
                 feat1 = FeatureBuilder.build(t1_id, t2_id, match.over_limit or 20)
                 feat2 = FeatureBuilder.build(t2_id, t1_id, match.over_limit or 20)
 
+                # Keep score features in the same fixed team order as the
+                # feature vectors so training and inference are aligned.
+                if inn1.batting_team_id == t1_id:
+                    t1_runs = float(inn1.total_runs)
+                    t2_runs = float(inn2.total_runs)
+                else:
+                    t1_runs = float(inn2.total_runs)
+                    t2_runs = float(inn1.total_runs)
+
                 row = feat1.to_full_vector() + feat2.to_full_vector() + [
-                    float(inn1.total_runs), float(inn2.total_runs)
+                    t1_runs, t2_runs
                 ]
                 X.append(row)
                 y.append(1 if match.winner_id == t1_id else 0)
@@ -423,6 +432,11 @@ def _heuristic_win_prob(feat1: "TeamMatchFeatures", feat2: "TeamMatchFeatures") 
     return round(s1 / (s1 + s2), 3)
 
 
+def _score_to_win_prob(score_diff: float) -> float:
+    """Translate projected score margin into a soft win probability."""
+    return 1.0 / (1.0 + math.exp(-(score_diff / 10.0)))
+
+
 # ---------------------------------------------------------------------------
 # Public MLService API
 # ---------------------------------------------------------------------------
@@ -450,6 +464,7 @@ class MatchPrediction:
     win_probability_team2: float = 0.0
     predicted_winner_id: int = 0
     predicted_winner_name: str = ""
+    win_probability_note: str = ""
 
     # Feature snapshots
     team1_features: Optional[TeamMatchFeatures] = None
@@ -486,6 +501,52 @@ class MLService:
         if not _models_trained:
             return ModelTrainer.train()
         return {"status": "already_trained"}
+
+    @classmethod
+    def _blend_win_probability(
+        cls,
+        base_prob_t1: float,
+        projected_team1: float,
+        projected_team2: float,
+        team1_name: str,
+        team2_name: str,
+    ) -> tuple[float, str]:
+        """
+        Blend classifier output with the projected score margin.
+
+        This keeps the win bar from drifting too far away from the displayed
+        score forecast while still preserving broader team-strength signals.
+        """
+        score_diff = projected_team1 - projected_team2
+        score_prob_t1 = _score_to_win_prob(score_diff)
+
+        score_favors_t1 = score_diff > 0.5
+        score_favors_t2 = score_diff < -0.5
+        classifier_favors_t1 = base_prob_t1 >= 0.5
+        disagreement = (
+            (score_favors_t1 and not classifier_favors_t1)
+            or (score_favors_t2 and classifier_favors_t1)
+        )
+
+        if disagreement:
+            score_weight = 0.75 if abs(score_diff) >= 5 else 0.6
+        else:
+            score_weight = 0.35
+
+        blended = (base_prob_t1 * (1.0 - score_weight)) + (score_prob_t1 * score_weight)
+        blended = max(0.03, min(0.97, blended))
+
+        note = (
+            "Win % blends projected scores with bowling control, squad depth, and head-to-head context."
+        )
+        if disagreement and abs(score_diff) >= 3:
+            leader = team1_name if score_diff > 0 else team2_name
+            note = (
+                f"Projected scores slightly favor {leader}, so the win % is tempered by the score margin "
+                "alongside bowling, depth, and head-to-head context."
+            )
+
+        return blended, note
 
     @classmethod
     def predict_match(
@@ -549,14 +610,18 @@ class MLService:
         )
 
         # ── Winner probability ────────────────────────────────────────────
-        win_prob_bat, winner_model_used = cls._predict_winner(
-            feat_bat, feat_bowl, inn1_pred, inn2_pred
+        proj_t1 = inn1_pred if batting_first_id == t1_id else inn2_pred
+        proj_t2 = inn2_pred if batting_first_id == t1_id else inn1_pred
+        base_win_prob_t1, winner_model_used = cls._predict_winner(
+            feat_t1, feat_t2, proj_t1, proj_t2
         )
-
-        if batting_first_id == t1_id:
-            win_prob_t1 = win_prob_bat
-        else:
-            win_prob_t1 = 1.0 - win_prob_bat
+        win_prob_t1, win_prob_note = cls._blend_win_probability(
+            base_win_prob_t1,
+            proj_t1,
+            proj_t2,
+            feat_t1.team_name,
+            feat_t2.team_name,
+        )
 
         win_prob_t1 = round(win_prob_t1, 3)
         win_prob_t2 = round(1.0 - win_prob_t1, 3)
@@ -589,6 +654,7 @@ class MLService:
             win_probability_team2=win_prob_t2,
             predicted_winner_id=winner_id,
             predicted_winner_name=feat_t1.team_name if winner_id == t1_id else feat_t2.team_name,
+            win_probability_note=win_prob_note,
             team1_features=feat_t1,
             team2_features=feat_t2,
             model_used=model_used,
@@ -650,14 +716,18 @@ class MLService:
         inn2_pred, inn2_lo, inn2_hi, inn2_model_used = cls._predict_score_inn2(
             feat_bowl, feat_bat, inn1_pred
         )
-        win_prob_bat, winner_model_used = cls._predict_winner(
-            feat_bat, feat_bowl, inn1_pred, inn2_pred
+        proj_t1 = inn1_pred if batting_first_id == t1_id else inn2_pred
+        proj_t2 = inn2_pred if batting_first_id == t1_id else inn1_pred
+        base_win_prob_t1, winner_model_used = cls._predict_winner(
+            feat_t1, feat_t2, proj_t1, proj_t2
         )
-
-        if batting_first_id == t1_id:
-            win_prob_t1 = win_prob_bat
-        else:
-            win_prob_t1 = 1.0 - win_prob_bat
+        win_prob_t1, win_prob_note = cls._blend_win_probability(
+            base_win_prob_t1,
+            proj_t1,
+            proj_t2,
+            feat_t1.team_name,
+            feat_t2.team_name,
+        )
 
         win_prob_t1 = round(win_prob_t1, 3)
         win_prob_t2 = round(1.0 - win_prob_t1, 3)
@@ -698,6 +768,7 @@ class MLService:
             win_probability_team2=win_prob_t2,
             predicted_winner_id=winner_id,
             predicted_winner_name=feat_t1.team_name if winner_id == t1_id else feat_t2.team_name,
+            win_probability_note=win_prob_note,
             team1_features=feat_t1,
             team2_features=feat_t2,
             model_used=model_used,

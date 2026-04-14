@@ -116,6 +116,7 @@
           <span id="wb-pct-a">-</span>
           <span id="wb-pct-b">-</span>
         </div>
+        <p id="wb-note" class="pred-win-note"></p>
       </div>
     </section>
 
@@ -173,6 +174,7 @@
 .pred-title { font-size:46px; line-height:1; color:#fff8eb; }
 .pred-title span { color:#ffd36d; }
 .pred-subtitle { margin-top:12px; color:rgba(255,240,218,0.80); font-size:14px; max-width:44ch; }
+.pred-win-note { margin-top:10px; font-size:12px; color:var(--text-muted); text-align:center; }
 .pred-hero-orbs { position:relative; min-height:200px; }
 .pred-orb { position:absolute; border-radius:50%; filter:blur(1px); }
 .pred-orb-a { width:180px;height:180px; top:0; right:60px; background:radial-gradient(circle,rgba(255,210,80,.58) 0%,transparent 68%); }
@@ -563,6 +565,7 @@
     wbPctA.textContent = `${(p.win_probability_team1 * 100).toFixed(1)}%`;
     wbPctB.textContent = `${(p.win_probability_team2 * 100).toFixed(1)}%`;
     wbWinner.textContent = p.predicted_winner_name;
+    document.getElementById('wb-note').textContent = p.win_probability_note || '';
 
     renderAnalysis(p);
     renderXI(p);

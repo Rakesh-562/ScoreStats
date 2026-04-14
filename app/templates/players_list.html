@@ -17,32 +17,53 @@
   <button class="tab-btn" onclick="filterPlayers(this,'wicket-keeper')">Keepers</button>
 </div>
 
+<style>
+.player-row { display:flex; gap:12px; align-items:stretch; }
+.player-row .player-card { flex:1; }
+.danger-btn {
+  border:1px solid rgba(182,64,50,.22);
+  background:rgba(182,64,50,.08);
+  color:#8a3027;
+  border-radius:14px;
+  padding:0 16px;
+  font-family:var(--condensed-font);
+  font-size:12px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  min-width:96px;
+}
+.danger-btn:hover { background:rgba(182,64,50,.14); }
+</style>
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="players-grid">
   {% for player in players %}
-  <a href="/player/{{ player.id }}" class="player-card animate-in delay-{{ [loop.index, 5]|min }}" data-role="{{ player.role | lower | default('') }}" style="text-decoration:none;">
-    <div class="player-avatar" style="width:56px;height:56px;font-size:16px;flex-shrink:0;">
-      {{ player.jersey_number or '?' }}
-    </div>
+  <div class="player-row animate-in delay-{{ [loop.index, 5]|min }}" data-role="{{ player.role | lower | default('') }}">
+    <a href="/player/{{ player.id }}" class="player-card" style="text-decoration:none;">
+      <div class="player-avatar" style="width:56px;height:56px;font-size:16px;flex-shrink:0;">
+        {{ player.jersey_number or '?' }}
+      </div>
 
-    <div style="flex:1;min-width:0;">
-      <div class="entity-name" style="font-size:16px;">{{ player.name }}</div>
-      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
-        {% if player.role %}
-        <span style="font-family:var(--condensed-font);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-          color:{{ 'var(--accent-blue)' if player.role=='batsman' else 'var(--accent-red)' if player.role=='bowler' else 'var(--accent-gold)' if player.role=='all-rounder' else 'var(--accent-green)' }};
-          background:rgba(255,255,255,0.04);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">
-          {{ player.role }}
-        </span>
-        {% endif %}
-        {% if player.batting_style %}
-        <span style="font-family:var(--condensed-font);font-size:10px;color:var(--text-muted);letter-spacing:.05em;">{{ player.batting_style }}</span>
+      <div style="flex:1;min-width:0;">
+        <div class="entity-name" style="font-size:16px;">{{ player.name }}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+          {% if player.role %}
+          <span style="font-family:var(--condensed-font);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+            color:{{ 'var(--accent-blue)' if player.role=='batsman' else 'var(--accent-red)' if player.role=='bowler' else 'var(--accent-gold)' if player.role=='all-rounder' else 'var(--accent-green)' }};
+            background:rgba(255,255,255,0.04);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">
+            {{ player.role }}
+          </span>
+          {% endif %}
+          {% if player.batting_style %}
+          <span style="font-family:var(--condensed-font);font-size:10px;color:var(--text-muted);letter-spacing:.05em;">{{ player.batting_style }}</span>
+          {% endif %}
+        </div>
+        {% if player.team_id %}
+        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">Team {{ player.team_id }}</div>
         {% endif %}
       </div>
-      {% if player.team_id %}
-      <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">Team {{ player.team_id }}</div>
-      {% endif %}
-    </div>
-  </a>
+    </a>
+    <button class="danger-btn" onclick="deletePlayer(event, {{ player.id }}, '{{ player.name|e }}')">Delete</button>
+  </div>
   {% else %}
   <div class="card" style="grid-column:1/-1;">
     <div class="empty-state">
@@ -60,6 +81,20 @@ function filterPlayers(btn, role) {
   document.querySelectorAll('#players-grid [data-role]').forEach(card => {
     card.style.display = (role === 'all' || card.dataset.role === role) ? 'flex' : 'none';
   });
+}
+
+async function deletePlayer(event, playerId, playerName) {
+  event.preventDefault();
+  const ok = confirm(`Delete player: ${playerName}?\n\nThis can also remove related match history for consistency.`);
+  if (!ok) return;
+
+  const res = await fetch(`/api/v1/players/${playerId}`, { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    alert(data.error || 'Failed to delete the player.');
+    return;
+  }
+  location.reload();
 }
 </script>
 {% endblock %}

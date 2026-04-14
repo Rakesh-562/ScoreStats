@@ -1,11 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Analytics — ScoreStat{% endblock %}
+{% block title %}Analytics - ScoreStat{% endblock %}
 
 {% block content %}
 <style>
 .an-page { display:flex; flex-direction:column; gap:28px; }
-
-/* Hero */
 .an-hero {
   position:relative; overflow:hidden;
   padding:36px 40px; border-radius:24px;
@@ -28,71 +26,50 @@
 .an-badge-card { padding:14px 18px; border-radius:16px; background:rgba(255,255,255,.06); border:1px solid rgba(255,220,150,.14); text-align:center; }
 .an-badge-val { font-family:var(--score-font); font-size:30px; color:#ffd36d; }
 .an-badge-lbl { font-family:var(--condensed-font); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,235,200,.6); margin-top:4px; }
-
-/* Tabs */
 .an-tabs { display:flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; width:fit-content; }
 .an-tab { padding:10px 22px; border:none; background:transparent; cursor:pointer; font-family:var(--condensed-font); font-size:13px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--text-muted); transition:all .18s; }
 .an-tab:not(:last-child) { border-right:1px solid var(--border); }
 .an-tab.active { background:var(--accent-green); color:#fff8ef; }
 .an-tab:not(.active):hover { background:var(--bg-deep); }
-
-/* Panels */
 .an-panel { background:linear-gradient(180deg,#fff,#f9f3ea); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow-card); overflow:hidden; }
 .an-panel-head { padding:20px 24px 0; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
 .an-panel-body { padding:16px 24px 24px; }
-
-/* Chart image wrapper */
 .chart-img-wrap { background:rgba(248,241,228,.6); border-radius:14px; padding:12px; margin-top:14px; }
 .chart-img-wrap img { width:100%; height:auto; border-radius:8px; display:block; }
 .chart-label { font-family:var(--condensed-font); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
-
-/* Stat chips */
 .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
 @media(max-width:700px){ .stat-row{grid-template-columns:repeat(2,1fr);} }
 .stat-chip { padding:14px 16px; border-radius:14px; background:rgba(244,236,222,.85); text-align:center; }
 .stat-chip-val { font-family:var(--score-font); font-size:24px; color:var(--text-primary); }
 .stat-chip-lbl { font-family:var(--condensed-font); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-top:4px; }
-
-/* Player grid */
 .player-pick-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
 .player-pick-card { padding:14px 16px; border-radius:14px; border:1px solid var(--border); background:var(--bg-card); cursor:pointer; transition:all .18s; text-align:left; width:100%; }
 .player-pick-card:hover, .player-pick-card.selected { border-color:var(--accent-green); background:#fffbf2; }
 .player-pick-name { font-family:var(--display-font); font-size:15px; color:var(--text-primary); }
 .player-pick-role { font-family:var(--condensed-font); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-top:3px; }
-
-/* Loader */
 .an-loader { display:none; text-align:center; padding:40px 24px; color:var(--text-muted); font-family:var(--condensed-font); letter-spacing:.08em; font-size:13px; }
 .an-loader.visible { display:block; }
 .an-loader::before { content:''; display:block; width:32px; height:32px; margin:0 auto 14px; border:3px solid var(--border); border-top-color:var(--accent-green); border-radius:50%; animation:an-spin .7s linear infinite; }
 @keyframes an-spin { to { transform:rotate(360deg); } }
-
-/* Match select row */
 .an-form-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
 .an-form-row .analytics-field { flex:1; min-width:200px; }
-
-/* Two-col chart layout */
 .chart-2col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 @media(max-width:780px){ .chart-2col{grid-template-columns:1fr;} }
-
-/* Consistency pill */
 .con-pill { display:inline-flex; align-items:center; padding:6px 12px; border-radius:999px; font-family:var(--condensed-font); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
 .con-consistent { background:rgba(126,170,79,.18); color:#567121; }
-.con-moderate   { background:rgba(217,163,25,.16); color:#9c6518; }
-.con-erratic    { background:rgba(182,64,50,.12);  color:#8a3027; }
+.con-moderate { background:rgba(217,163,25,.16); color:#9c6518; }
+.con-erratic { background:rgba(182,64,50,.12); color:#8a3027; }
 </style>
 
 <div class="an-page">
-
-  <!-- HERO -->
   <section class="an-hero animate-in">
     <div>
       <div class="an-hero-kicker">ScoreStat Analytics Engine</div>
       <h1 class="an-hero-title">Performance<br>Intelligence</h1>
-      <p class="an-hero-sub">Player consistency profiles, match run-flow charts, and TOPSIS-ranked XI selection — all rendered from live ball-by-ball data.</p>
+      <p class="an-hero-sub">Player consistency profiles and match run-flow charts, all rendered from live ball-by-ball data.</p>
       <div class="an-hero-pills">
         <div class="an-hero-pill"><strong>Gini</strong> Batting consistency</div>
         <div class="an-hero-pill"><strong>Shannon H</strong> Bowling control</div>
-        <div class="an-hero-pill"><strong>TOPSIS</strong> XI selection</div>
         <div class="an-hero-pill"><strong>Win%</strong> Match probability</div>
       </div>
     </div>
@@ -104,14 +81,11 @@
     </div>
   </section>
 
-  <!-- TABS -->
   <div class="an-tabs">
     <button class="an-tab active" data-view="player">Player Profile</button>
     <button class="an-tab" data-view="match">Match Analysis</button>
-    <button class="an-tab" data-view="xi">XI Selection</button>
   </div>
 
-  <!-- ══ VIEW 1 — PLAYER ══════════════════════════════════════ -->
   <section id="view-player" class="an-view">
     <div class="section-label">Select a Player</div>
     <div class="player-pick-grid">
@@ -121,7 +95,7 @@
           <div class="player-avatar" style="width:34px;height:34px;font-size:12px;flex-shrink:0;">{{ player.jersey_number or '?' }}</div>
           <div class="player-pick-name">{{ player.name }}</div>
         </div>
-        <div class="player-pick-role">{{ player.role }} · {{ player.team.short_name if player.team else '—' }}</div>
+        <div class="player-pick-role">{{ player.role }} - {{ player.team.short_name if player.team else '-' }}</div>
       </button>
       {% endfor %}
     </div>
@@ -129,8 +103,6 @@
     <div class="an-loader" id="player-loader"></div>
 
     <div id="player-area" style="display:none;">
-
-      <!-- Summary bar -->
       <div class="an-panel" style="margin-bottom:18px;">
         <div class="an-panel-head" id="player-hero-head"></div>
         <div class="an-panel-body">
@@ -138,7 +110,6 @@
         </div>
       </div>
 
-      <!-- Runs trend + Bowling trend -->
       <div class="chart-2col" style="margin-bottom:16px;">
         <div class="an-panel">
           <div class="an-panel-head">
@@ -151,7 +122,7 @@
         </div>
         <div class="an-panel">
           <div class="an-panel-head">
-            <div><div class="section-label">Bowling</div><h3 style="font-size:17px;">Wickets & Economy</h3></div>
+            <div><div class="section-label">Bowling</div><h3 style="font-size:17px;">Wickets and Economy</h3></div>
             <span class="analytics-chip green">Trend</span>
           </div>
           <div class="an-panel-body">
@@ -160,7 +131,6 @@
         </div>
       </div>
 
-      <!-- Radar + Scoring mix -->
       <div class="chart-2col">
         <div class="an-panel">
           <div class="an-panel-head">
@@ -184,22 +154,20 @@
           </div>
         </div>
       </div>
-
-    </div><!-- /player-area -->
+    </div>
   </section>
 
-  <!-- ══ VIEW 2 — MATCH ═══════════════════════════════════════ -->
   <section id="view-match" class="an-view" style="display:none;">
     <div class="section-label">Select a Match</div>
     <div class="an-form-row">
       <label class="analytics-field">
         <span>Match</span>
         <select id="match-select" class="form-input">
-          <option value="">Choose a match…</option>
+          <option value="">Choose a match...</option>
           {% for match in matches %}
           {% if match.status != 'scheduled' %}
           <option value="{{ match.id }}">
-            #{{ match.id }} — {{ match.team1.name if match.team1 else 'Team '~match.team_1_id }}
+            #{{ match.id }} - {{ match.team1.name if match.team1 else 'Team '~match.team_1_id }}
             vs {{ match.team2.name if match.team2 else 'Team '~match.team_2_id }}
             [{{ match.status|upper }}]
           </option>
@@ -213,32 +181,6 @@
     <div class="an-loader" id="match-loader"></div>
     <div id="match-area" style="display:none;margin-top:4px;"></div>
   </section>
-
-  <!-- ══ VIEW 3 — XI SELECTION ════════════════════════════════ -->
-  <section id="view-xi" class="an-view" style="display:none;">
-    <div class="section-label">Pre-Match XI Preview</div>
-    <div class="an-form-row">
-      <label class="analytics-field">
-        <span>Match</span>
-        <select id="preview-match" class="form-input">
-          <option value="">Select match</option>
-          {% for match in matches %}
-          <option value="{{ match.id }}">
-            #{{ match.id }} — {{ match.team1.name if match.team1 else 'Team '~match.team_1_id }}
-            vs {{ match.team2.name if match.team2 else 'Team '~match.team_2_id }}
-            [{{ match.status|upper }}]
-          </option>
-          {% endfor %}
-        </select>
-      </label>
-      <button id="preview-load-btn" class="btn btn-primary">Build Preview</button>
-    </div>
-    <div id="preview-status" class="analytics-status" style="margin-top:12px;">Choose any match to generate both playing XIs and the matchup preview.</div>
-    <div id="matchup-board" class="analytics-matchup-board"></div>
-    <div id="aspect-grid"  class="analytics-overview-grid"></div>
-    <div id="xi-team-grid" class="analytics-team-grid" style="margin-top:18px;"></div>
-  </section>
-
 </div>
 {% endblock %}
 
@@ -247,27 +189,25 @@
 (function(){
 'use strict';
 
-const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const fmt = (v,d=2) => { const n=Number(v); return isFinite(n)?n.toFixed(d):'-'; };
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = (v,d=2) => { const n=Number(v); return isFinite(n) ? n.toFixed(d) : '-'; };
 
-// ── Tabs ──────────────────────────────────────────────────────
-document.querySelectorAll('.an-tab').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.an-tab').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.an-view').forEach(v=>v.style.display='none');
+document.querySelectorAll('.an-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.an-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.an-view').forEach(v => v.style.display = 'none');
     btn.classList.add('active');
-    document.getElementById('view-'+btn.dataset.view).style.display='';
+    document.getElementById('view-' + btn.dataset.view).style.display = '';
   });
 });
 
-// ── Player charts ─────────────────────────────────────────────
 let activePlayer = null;
-document.querySelectorAll('.player-pick-card').forEach(card=>{
-  card.addEventListener('click',()=>{
+document.querySelectorAll('.player-pick-card').forEach(card => {
+  card.addEventListener('click', () => {
     const pid = Number(card.dataset.playerId);
-    if (pid===activePlayer) return;
-    activePlayer=pid;
-    document.querySelectorAll('.player-pick-card').forEach(c=>c.classList.remove('selected'));
+    if (pid === activePlayer) return;
+    activePlayer = pid;
+    document.querySelectorAll('.player-pick-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     loadPlayerCharts(pid);
   });
@@ -275,46 +215,44 @@ document.querySelectorAll('.player-pick-card').forEach(card=>{
 
 async function loadPlayerCharts(playerId) {
   const loader = document.getElementById('player-loader');
-  const area   = document.getElementById('player-area');
+  const area = document.getElementById('player-area');
   loader.classList.add('visible');
-  area.style.display='none';
+  area.style.display = 'none';
   try {
     const data = await fetchJSON(`/api/v1/analytics/player/${playerId}/charts`);
     loader.classList.remove('visible');
 
-    // Summary
     const s = data.career_stats || {};
     const label = s.consistency_label || '';
     document.getElementById('player-hero-head').innerHTML = `
       <div>
         <div class="section-label">Career Overview</div>
         <h2 style="font-size:24px;">${esc(data.player_name)}</h2>
-        <div style="margin-top:6px;color:var(--text-muted);font-size:13px;">${esc(data.role)} · ${s.innings_played||0} innings · ${s.total_runs||0} runs</div>
+        <div style="margin-top:6px;color:var(--text-muted);font-size:13px;">${esc(data.role)} - ${s.innings_played || 0} innings - ${s.total_runs || 0} runs</div>
       </div>
-      <span class="con-pill con-${esc(label)}">${label.charAt(0).toUpperCase()+label.slice(1)} · Gini ${fmt(s.gini_coefficient,4)}</span>
+      <span class="con-pill con-${esc(label)}">${label ? label.charAt(0).toUpperCase() + label.slice(1) : 'Profile'} - Gini ${fmt(s.gini_coefficient,4)}</span>
     `;
     document.getElementById('player-stat-chips').innerHTML = [
       ['Average', fmt(s.average)],
       ['Strike Rate', fmt(s.strike_rate)],
-      ['Boundary %', fmt((s.boundary_pct||0)*100,1)+'%'],
-      ['Bat Index', fmt(s.batting_index,4)],
-    ].map(([l,v])=>`<div class="stat-chip"><div class="stat-chip-val">${v}</div><div class="stat-chip-lbl">${l}</div></div>`).join('');
+      ['Boundary %', fmt((s.boundary_pct || 0) * 100, 1) + '%'],
+      ['Bat Index', fmt(s.batting_index, 4)],
+    ].map(([l,v]) => `<div class="stat-chip"><div class="stat-chip-val">${v}</div><div class="stat-chip-lbl">${l}</div></div>`).join('');
 
     const chip = document.getElementById('consistency-chip');
-    chip.textContent = label.charAt(0).toUpperCase()+label.slice(1);
-    chip.className   = `con-pill con-${label}`;
+    chip.textContent = label ? label.charAt(0).toUpperCase() + label.slice(1) : 'Profile';
+    chip.className = `con-pill con-${label || 'moderate'}`;
 
-    // Set chart images
-    setImg('img-runs-trend',   data.runs_trend);
-    setImg('img-bowl-trend',   data.bowling_trend);
-    setImg('img-radar',        data.radar);
-    setImg('img-scoring-mix',  data.scoring_mix);
+    setImg('img-runs-trend', data.runs_trend);
+    setImg('img-bowl-trend', data.bowling_trend);
+    setImg('img-radar', data.radar);
+    setImg('img-scoring-mix', data.scoring_mix);
 
-    area.style.display='';
-  } catch(e) {
+    area.style.display = '';
+  } catch (e) {
     loader.classList.remove('visible');
-    area.innerHTML=`<p style="color:var(--accent-red);padding:16px;font-size:13px;">Error: ${esc(e.message)}</p>`;
-    area.style.display='';
+    area.innerHTML = `<p style="color:var(--accent-red);padding:16px;font-size:13px;">Error: ${esc(e.message)}</p>`;
+    area.style.display = '';
   }
 }
 
@@ -323,23 +261,22 @@ function setImg(id, b64) {
   if (el && b64) el.src = 'data:image/png;base64,' + b64;
 }
 
-// ── Match charts ──────────────────────────────────────────────
-document.getElementById('match-load-btn').addEventListener('click', async()=>{
+document.getElementById('match-load-btn').addEventListener('click', async () => {
   const matchId = document.getElementById('match-select').value;
   if (!matchId) return;
   const loader = document.getElementById('match-loader');
-  const area   = document.getElementById('match-area');
+  const area = document.getElementById('match-area');
   loader.classList.add('visible');
-  area.style.display='none';
+  area.style.display = 'none';
   try {
     const data = await fetchJSON(`/api/v1/analytics/match/${matchId}/charts`);
     loader.classList.remove('visible');
     renderMatchCharts(data);
-    area.style.display='';
-  } catch(e) {
+    area.style.display = '';
+  } catch (e) {
     loader.classList.remove('visible');
-    area.innerHTML=`<p style="color:var(--accent-red);padding:16px;font-size:13px;">Error: ${esc(e.message)}</p>`;
-    area.style.display='';
+    area.innerHTML = `<p style="color:var(--accent-red);padding:16px;font-size:13px;">Error: ${esc(e.message)}</p>`;
+    area.style.display = '';
   }
 });
 
@@ -360,7 +297,7 @@ function renderMatchCharts(data) {
     </div>
   `;
 
-  (data.innings||[]).forEach(inn=>{
+  (data.innings || []).forEach(inn => {
     const targetTxt = inn.target ? `<span style="font-size:13px;color:var(--accent-gold);margin-left:10px;">Target: ${inn.target}</span>` : '';
     html += `
     <div class="an-panel" style="margin-bottom:18px;">
@@ -393,76 +330,10 @@ function renderMatchCharts(data) {
   area.innerHTML = html;
 }
 
-// ── XI Selection ──────────────────────────────────────────────
-document.getElementById('preview-load-btn').addEventListener('click', async()=>{
-  const matchId = document.getElementById('preview-match').value;
-  if (!matchId) { setStatus('preview-status','Select a match first.','error'); return; }
-  setStatus('preview-status','Building preview…');
-  try {
-    const data = await fetchJSON('/api/v1/analytics/select-xi',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({match_id:Number(matchId)}),
-    });
-    renderMatchupBoard(data);
-    renderAspectCards(data.comparison||[]);
-    renderTeamSheets(data);
-    setStatus('preview-status',`${data.team_1.team_name} vs ${data.team_2.team_name} loaded.`,'success');
-  } catch(e) {
-    ['matchup-board','aspect-grid','xi-team-grid'].forEach(id=>document.getElementById(id).innerHTML='');
-    setStatus('preview-status',e.message,'error');
-  }
-});
-
-function setStatus(id,msg,tone=''){
-  const el=document.getElementById(id);
-  el.className=`analytics-status ${tone}`.trim();
-  el.textContent=msg;
-}
-function renderMatchupBoard(data){
-  const t1=data.team_1,t2=data.team_2,w1=data.win_probability.team_1.chance,w2=data.win_probability.team_2.chance;
-  document.getElementById('matchup-board').innerHTML=`
-    <div class="analytics-scoreboard">
-      <div class="analytics-scoreboard-team"><div class="analytics-scoreboard-name">${esc(t1.team_name)}</div><div class="analytics-scoreboard-chance">${fmt(w1,1)}%</div></div>
-      <div class="analytics-scoreboard-mid">
-        <div class="analytics-scoreboard-kicker">Projected Winner</div>
-        <div class="analytics-scoreboard-favored">${esc(data.win_probability.favored_team)}</div>
-        <div class="analytics-winbar"><span class="team-a" style="width:${Math.max(w1,6)}%"></span><span class="team-b" style="width:${Math.max(w2,6)}%"></span></div>
-      </div>
-      <div class="analytics-scoreboard-team right"><div class="analytics-scoreboard-name">${esc(t2.team_name)}</div><div class="analytics-scoreboard-chance">${fmt(w2,1)}%</div></div>
-    </div>`;
-}
-function renderAspectCards(comparison){
-  document.getElementById('aspect-grid').innerHTML=comparison.map(item=>`
-    <div class="analytics-overview-card">
-      <span>${esc(item.label)}</span>
-      <strong>${esc(item.edge)}</strong>
-      <div class="analytics-overview-sub">${fmt(item.team_1_value,3)} vs ${fmt(item.team_2_value,3)}</div>
-    </div>`).join('');
-}
-function renderTeamSheets(data){
-  document.getElementById('xi-team-grid').innerHTML=[data.team_1,data.team_2].map(team=>`
-    <div class="analytics-team-card">
-      <div class="analytics-team-card-head">
-        <div class="analytics-team-card-name">${esc(team.team_name)}</div>
-        <div class="analytics-team-card-sub">Overall ${fmt(team.strengths.overall,4)}</div>
-      </div>
-      <div class="analytics-xi-grid team-mode">
-        ${team.selected_xi.map((p,i)=>`
-          <div class="analytics-xi-slot">
-            <div class="analytics-xi-rank">${i+1}</div>
-            <div class="analytics-xi-name">${esc(p.player_name)}</div>
-            <div class="analytics-xi-role">${esc(p.role)}</div>
-            <div class="analytics-xi-score">Sel ${fmt(p.selection_score,4)}</div>
-          </div>`).join('')}
-      </div>
-    </div>`).join('');
-}
-
-// ── Utility ───────────────────────────────────────────────────
-async function fetchJSON(url,opts={}){
-  const res = await fetch(url,opts);
-  const d   = await res.json().catch(()=>({}));
-  if (!res.ok) throw new Error(d.error||d.detail||`HTTP ${res.status}`);
+async function fetchJSON(url, opts = {}) {
+  const res = await fetch(url, opts);
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(d.error || d.detail || `HTTP ${res.status}`);
   return d;
 }
 
